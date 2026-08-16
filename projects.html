@@ -9,43 +9,34 @@
 </head>
 <body>
 <main class="app projects-app">
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">MYADMIN / GESTIONE PROGETTI</p>
-      <h1>Progetti <span>2026</span></h1>
-    </div>
-    <div class="top-actions">
-      <a class="ghost nav-link" href="/">RICEVUTE</a>
-      <button id="newProjectBtn" class="primary">+ NUOVO PROGETTO</button>
-    </div>
+  <header class="topbar compact-topbar">
+    <div><p class="eyebrow">MYADMIN / WORKSPACE</p><h1>Projects <span>2026</span></h1></div>
+    <div class="top-actions"><a class="ghost nav-link" href="/">RICEVUTE</a><button id="newProjectBtn" class="primary">+ PROGETTO</button></div>
   </header>
 
-  <section class="project-summary">
-    <article><small>Progetti</small><strong id="projectCount">0</strong></article>
-    <article><small>Repo attivi</small><strong id="repoCount">0</strong></article>
-    <article><small>Task aperti</small><strong id="openTasks">0</strong></article>
-    <article><small>Valore progetti</small><strong id="projectValue">€ 0,00</strong></article>
-  </section>
+  <nav id="categoryRail" class="category-rail" aria-label="Categorie progetti">
+    <button class="category-dot active" data-category="all"><i></i><span>Tutti</span><b id="cat-all">0</b></button>
+    <button class="category-dot" data-category="commercial"><i></i><span>Commercial Works</span><b id="cat-commercial">0</b></button>
+    <button class="category-dot" data-category="community"><i></i><span>Community</span><b id="cat-community">0</b></button>
+    <button class="category-dot" data-category="personal"><i></i><span>Personal</span><b id="cat-personal">0</b></button>
+  </nav>
 
-  <section class="panel quick-task-panel">
-    <div class="section-head"><div><p class="eyebrow">OGGI</p><h2>Prossime azioni</h2></div></div>
-    <div id="nextActions" class="next-actions"></div>
-  </section>
+  <section class="workspace-columns">
+    <aside class="workspace-col projects-index-col">
+      <div class="col-head"><div><p class="eyebrow">INDEX</p><h2>Progetti</h2></div><span id="projectCount">0</span></div>
+      <div id="projectIndex" class="project-index scroll-stack"></div>
+    </aside>
 
-  <section class="panel repo-index-panel">
-    <div class="section-head repo-index-head">
-      <div><p class="eyebrow">REPOSITORY INDEX</p><h2>Sottoprogetti / repo attivi</h2></div>
-      <div class="repo-filters" id="repoFilters">
-        <button data-filter="all" class="repo-filter active">TUTTI</button>
-        <button data-filter="commercial">COMMERCIAL WORKS</button>
-        <button data-filter="community">COMMUNITY</button>
-        <button data-filter="personal">PERSONAL</button>
-      </div>
-    </div>
-    <div id="repoIndex" class="repo-index"></div>
-  </section>
+    <section class="workspace-col actions-col">
+      <div class="col-head"><div><p class="eyebrow">OGGI</p><h2>Prossime azioni</h2></div><span id="openTasks">0 task</span></div>
+      <div id="nextActions" class="actions-list scroll-stack"></div>
+    </section>
 
-  <section class="category-sections" id="categorySections"></section>
+    <section class="workspace-col repos-col">
+      <div class="col-head"><div><p class="eyebrow">ACTIVE REPOSITORIES</p><h2>Sottoprogetti / repo</h2></div><span id="repoCount">0</span></div>
+      <div id="repoIndex" class="repo-stack scroll-stack"></div>
+    </section>
+  </section>
 </main>
 
 <dialog id="projectDialog" class="project-dialog">
@@ -62,12 +53,10 @@
       <label class="span2">Prossima azione<input id="projectNextAction" placeholder="Es. fare homepage, preparare preventivo..."></label>
       <label class="span2">Note<textarea id="projectNotes" rows="3"></textarea></label>
     </div>
-
     <h3>Sottoprogetti / repository</h3>
-    <p class="hint">Ogni sottoprogetto è un repo operativo: contiene i task di quel lavoro specifico.</p>
+    <p class="hint">Ogni sottoprogetto è un repo operativo e contiene i task di quel lavoro specifico.</p>
     <div id="subprojectEditor" class="subproject-editor"></div>
     <button type="button" id="addSubprojectBtn" class="ghost">+ AGGIUNGI REPO</button>
-
     <div class="dialog-actions"><button type="button" id="deleteProjectBtn" class="danger-btn">ELIMINA</button><button type="button" id="saveProjectBtn" class="primary">SALVA PROGETTO</button></div>
   </form>
 </dialog>
@@ -79,7 +68,6 @@
     <div id="repoTaskList" class="repo-task-list"></div>
   </form>
 </dialog>
-
 <script src="projects.js"></script>
 </body>
 </html>
