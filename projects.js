@@ -1,104 +1,180 @@
 const $ = id => document.getElementById(id);
 const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n)||0);
 const num = v => {let s=String(v??'').trim().replace(/\s/g,'');if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(',','.');return Number(s)||0};
+const uid = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
 
 const PROJECT_SEED = [
-  {id:'gaia-site',name:'Sito di Gaia',client:'Gaia',status:'paused',category:'Sito web',budget:0,deadline:'',nextAction:'Riprendere quando arriva il prossimo intervento',notes:'Progetto intermittente: manutenzione e aggiornamenti quando richiesti.',tasks:[{text:'Controllare richieste aperte',done:false}]},
-  {id:'ssf',name:'Sound Studies Forum',client:'Sound Studies Forum',status:'paused',category:'Sito web',budget:0,deadline:'',nextAction:'Tenere traccia dei prossimi interventi sul sito',notes:'Sito già attivo, lavoro a chiamata / manutenzione.',tasks:[{text:'Raccogliere prossime modifiche',done:false}]},
-  {id:'asap-site',name:'ASAP — nuovo sito',client:'ASAP',status:'active',category:'Sito web',budget:0,deadline:'',nextAction:'Impostare struttura e prima architettura del nuovo sito',notes:'Nuovo task attivo per ASAP.',tasks:[{text:'Definire struttura pagine',done:false},{text:'Raccogliere contenuti e riferimenti',done:false},{text:'Preparare prima direzione visiva',done:false}]}
+  {
+    id:'asap',name:'ASAP',category:'community',status:'active',economic:'mixed',budget:0,deadline:'',
+    nextAction:'Impostare struttura e prima architettura del nuovo sito',notes:'',public:false,publicSummary:'',
+    subprojects:[{id:'asap-site',name:'Nuovo sito',status:'active',tasks:[
+      {id:uid('t'),text:'Definire struttura pagine',status:'todo'},
+      {id:uid('t'),text:'Raccogliere contenuti e riferimenti',status:'todo'},
+      {id:uid('t'),text:'Preparare prima direzione visiva',status:'todo'}
+    ]}]
+  },
+  {id:'blivet',name:'BLIVET',category:'community',status:'intermittent',economic:'mixed',budget:0,deadline:'',nextAction:'',notes:'',public:false,publicSummary:'',subprojects:[]},
+  {id:'aotu',name:'AOTU',category:'personal',status:'intermittent',economic:'mixed',budget:0,deadline:'',nextAction:'',notes:'The Archive of the Untamed',public:true,publicSummary:'',subprojects:[]},
+  {id:'myadmin',name:'myAdmin',category:'personal',status:'active',economic:'na',budget:0,deadline:'',nextAction:'Costruire gestione progetti e output pubblico',notes:'Software personale di amministrazione e lavoro.',public:false,publicSummary:'',subprojects:[{id:'myadmin-core',name:'Core software',status:'active',tasks:[{id:uid('t'),text:'Gerarchia categoria → progetto → sottoprogetto → task',status:'doing'}]}]}
 ];
 
-let state = null;
-let editingId = null;
+const CATEGORY_LABELS={commercial:'Commercial Works',community:'Community',personal:'Personal'};
+const STATUS_LABELS={active:'Attivo',intermittent:'Intermittente',paused:'In pausa',idea:'Da attivare',done:'Chiuso'};
+const TASK_LABELS={todo:'Da fare',doing:'In corso',blocked:'Bloccato',done:'Fatto'};
+let state=null;
+let editingId=null;
+let activeCategory='all';
 
 async function loadState(){
-  try{
-    const res = await fetch('/api/state',{cache:'no-store'});
-    if(!res.ok) throw new Error('server');
-    state = await res.json();
-  }catch(e){
-    state = JSON.parse(localStorage.getItem('myadmin-projects-fallback')||'{"paid":[],"pending":[]}');
-  }
-  if(!Array.isArray(state.projects)) state.projects = PROJECT_SEED;
+  try{const res=await fetch('/api/state',{cache:'no-store'});if(!res.ok)throw new Error('server');state=await res.json();}
+  catch(e){state=JSON.parse(localStorage.getItem('myadmin-projects-fallback')||'{"paid":[],"pending":[]}');}
+  migrateProjects();
   await saveState(false);
   render();
 }
+
+function migrateProjects(){
+  if(!Array.isArray(state.projects)){
+    state.projects=JSON.parse(JSON.stringify(PROJECT_SEED));
+    state.projectsSchema=2;
+    return;
+  }
+  if(state.projectsSchema===2)return;
+
+  // Rimuove soltanto i due vecchi esempi automatici, mai i progetti creati dall'utente.
+  state.projects=state.projects.filter(p=>!['gaia-site','ssf'].includes(p.id));
+  const hasMeaningful=state.projects.some(p=>!['asap-site'].includes(p.id));
+  if(!hasMeaningful){state.projects=JSON.parse(JSON.stringify(PROJECT_SEED));}
+  else{
+    state.projects=state.projects.map(p=>{
+      let category=p.workCategory||p.category;
+      if(!['commercial','community','personal'].includes(category)) category='commercial';
+      let status=p.status==='paused'?'intermittent':(p.status||'idea');
+      const oldTasks=Array.isArray(p.tasks)?p.tasks:[];
+      return {
+        ...p,
+        category,status,economic:p.economic||'paid',public:!!p.public,publicSummary:p.publicSummary||'',
+        subprojects:Array.isArray(p.subprojects)?p.subprojects:(oldTasks.length?[{id:uid('sub'),name:'Generale',status:'active',tasks:oldTasks.map(t=>({id:t.id||uid('t'),text:t.text||'',status:t.status||(t.done?'done':'todo')}))}]:[])
+      };
+    });
+    if(!state.projects.some(p=>p.id==='asap')) state.projects.push(PROJECT_SEED[0]);
+    if(!state.projects.some(p=>p.id==='blivet')) state.projects.push(PROJECT_SEED[1]);
+    if(!state.projects.some(p=>p.id==='aotu')) state.projects.push(PROJECT_SEED[2]);
+    if(!state.projects.some(p=>p.id==='myadmin')) state.projects.push(PROJECT_SEED[3]);
+  }
+  state.projectsSchema=2;
+}
+
 async function saveState(renderAfter=true){
-  try{
-    await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
-  }catch(e){ localStorage.setItem('myadmin-projects-fallback',JSON.stringify(state)); }
-  if(renderAfter) render();
+  try{await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});}
+  catch(e){localStorage.setItem('myadmin-projects-fallback',JSON.stringify(state));}
+  if(renderAfter)render();
 }
 function projectById(id){return state.projects.find(p=>p.id===id)}
-function uid(){return 'prj-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7)}
-function openTasks(p){return (p.tasks||[]).filter(t=>!t.done).length}
-function taskPct(p){const t=p.tasks||[];if(!t.length)return 0;return Math.round(t.filter(x=>x.done).length/t.length*100)}
+function allTasks(p){return (p.subprojects||[]).flatMap(s=>(s.tasks||[]).map(t=>({...t,subproject:s.name})));}
+function openTaskCount(p){return allTasks(p).filter(t=>t.status!=='done').length;}
+function doingTaskCount(p){return allTasks(p).filter(t=>t.status==='doing').length;}
+function taskPct(p){const tasks=allTasks(p);if(!tasks.length)return 0;return Math.round(tasks.filter(t=>t.status==='done').length/tasks.length*100);}
 
 function render(){
   const projects=state.projects||[];
-  $('activeCount').textContent=projects.filter(p=>p.status==='active').length;
-  $('pausedCount').textContent=projects.filter(p=>p.status==='paused').length;
-  $('openTasks').textContent=projects.reduce((a,p)=>a+openTasks(p),0);
-  $('projectValue').textContent=euro(projects.filter(p=>p.status!=='done').reduce((a,p)=>a+num(p.budget),0));
+  $('activeCount').textContent=projects.filter(p=>['active','intermittent'].includes(p.status)).length;
+  $('openTasks').textContent=projects.reduce((a,p)=>a+openTaskCount(p),0);
+  $('doingTasks').textContent=projects.reduce((a,p)=>a+doingTaskCount(p),0);
+  $('publicCount').textContent=projects.filter(p=>p.public).length;
+  ['commercial','community','personal'].forEach(c=>{$('cat-'+c).textContent=projects.filter(p=>p.category===c).length});
+  $('cat-all').textContent=projects.length;
 
-  document.querySelectorAll('.board-column').forEach(col=>col.querySelector('.project-list').innerHTML='');
-  ['idea','active','paused','done'].forEach(s=>{$('count-'+s).textContent=projects.filter(p=>p.status===s).length});
+  renderNextActions(projects);
+  renderGrid(projects);
+}
 
-  projects.forEach(p=>{
-    const list=document.querySelector(`.board-column[data-status="${p.status}"] .project-list`);
-    if(!list)return;
-    const card=document.createElement('article');
-    card.className='project-card';card.draggable=true;card.dataset.id=p.id;
-    card.innerHTML=`<h3>${p.name}</h3><div class="project-client">${p.client||p.category||''}</div><div class="project-meta"><span>${p.category||'Altro'}</span><b>${p.budget?euro(p.budget):'—'}</b></div>${p.deadline?`<div class="project-meta"><span>Deadline</span><b>${p.deadline.split('-').reverse().join('/')}</b></div>`:''}${p.nextAction?`<div class="project-action">→ ${p.nextAction}</div>`:''}<div class="task-progress"><i style="width:${taskPct(p)}%"></i></div><div class="project-meta"><span>${openTasks(p)} task aperti</span><span>${taskPct(p)}%</span></div>`;
-    card.onclick=()=>openDialog(p.id);
-    card.ondragstart=e=>{e.stopPropagation();card.classList.add('dragging');e.dataTransfer.setData('text/plain',p.id)};
-    card.ondragend=()=>card.classList.remove('dragging');
-    list.appendChild(card);
-  });
-
-  document.querySelectorAll('.board-column').forEach(col=>{
-    const list=col.querySelector('.project-list');if(!list.children.length)list.innerHTML='<div class="empty-board">Nessun progetto</div>';
-  });
-
-  const actions=projects.filter(p=>p.status!=='done'&&p.nextAction).sort((a,b)=>(a.deadline||'9999').localeCompare(b.deadline||'9999'));
-  $('nextActions').innerHTML=actions.length?actions.map(p=>`<button class="next-action" data-id="${p.id}"><b>${p.name}</b> ${p.nextAction}</button>`).join(''):'<span class="empty-board">Nessuna prossima azione.</span>';
+function renderNextActions(projects){
+  const taskActions=[];
+  projects.forEach(p=>(p.subprojects||[]).forEach(s=>(s.tasks||[]).filter(t=>['doing','blocked'].includes(t.status)).forEach(t=>taskActions.push({p,s,t}))));
+  const projectActions=projects.filter(p=>p.status!=='done'&&p.nextAction).map(p=>({p,action:p.nextAction}));
+  const chunks=[
+    ...taskActions.slice(0,8).map(x=>`<button class="next-action ${x.t.status}" data-id="${x.p.id}"><small>${x.t.status==='blocked'?'BLOCCATO':'IN CORSO'} · ${x.p.name} / ${x.s.name}</small><b>${x.t.text}</b></button>`),
+    ...projectActions.slice(0,5).map(x=>`<button class="next-action" data-id="${x.p.id}"><small>PROSSIMA AZIONE · ${x.p.name}</small><b>${x.action}</b></button>`)
+  ];
+  $('nextActions').innerHTML=chunks.length?chunks.join(''):'<span class="empty-board">Nessuna azione urgente.</span>';
   document.querySelectorAll('.next-action').forEach(b=>b.onclick=()=>openDialog(b.dataset.id));
 }
 
+function renderGrid(projects){
+  const filtered=activeCategory==='all'?projects:projects.filter(p=>p.category===activeCategory);
+  const grid=$('projectGrid');grid.innerHTML='';
+  if(!filtered.length){grid.innerHTML='<div class="empty-state">Nessun progetto in questa categoria. <button id="emptyNew" class="ghost">+ crealo</button></div>';const b=$('emptyNew');if(b)b.onclick=()=>openDialog();return;}
+
+  filtered.forEach(p=>{
+    const card=document.createElement('article');card.className='project-card';card.dataset.id=p.id;
+    const subs=p.subprojects||[];
+    const subHtml=subs.length?subs.slice(0,4).map(s=>{
+      const total=(s.tasks||[]).length,open=(s.tasks||[]).filter(t=>t.status!=='done').length;
+      return `<div class="subproject-line"><span>${s.name}</span><small>${open}/${total} aperti</small></div>`;
+    }).join(''):'<div class="subproject-line empty-sub">Nessun sottoprogetto</div>';
+    card.innerHTML=`
+      <div class="project-card-head"><div><span class="category-pill ${p.category}">${CATEGORY_LABELS[p.category]}</span><h2>${escapeHtml(p.name)}</h2></div><span class="status-pill ${p.status}">${STATUS_LABELS[p.status]||p.status}</span></div>
+      ${p.nextAction?`<div class="project-next">→ ${escapeHtml(p.nextAction)}</div>`:''}
+      <div class="subproject-lines">${subHtml}</div>
+      <div class="task-progress"><i style="width:${taskPct(p)}%"></i></div>
+      <div class="project-footer"><span>${openTaskCount(p)} task aperti · ${taskPct(p)}%</span><span>${p.public?'● output sito':''}</span></div>`;
+    card.onclick=()=>openDialog(p.id);grid.appendChild(card);
+  });
+}
+
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+
 function openDialog(id=null){
   editingId=id;
-  const p=id?projectById(id):{id:'',name:'',client:'',status:'idea',category:'Sito web',budget:'',deadline:'',nextAction:'',notes:'',tasks:[]};
+  const p=id?projectById(id):{id:'',name:'',category:activeCategory==='all'?'commercial':activeCategory,status:'active',economic:'paid',budget:'',deadline:'',nextAction:'',notes:'',public:false,publicSummary:'',subprojects:[]};
   $('dialogTitle').textContent=id?'Modifica progetto':'Nuovo progetto';
-  $('projectId').value=p.id||'';$('projectName').value=p.name||'';$('projectClient').value=p.client||'';$('projectStatus').value=p.status||'idea';$('projectCategory').value=p.category||'Sito web';$('projectBudget').value=p.budget||'';$('projectDeadline').value=p.deadline||'';$('projectNextAction').value=p.nextAction||'';$('projectNotes').value=p.notes||'';
+  $('projectId').value=p.id||'';$('projectName').value=p.name||'';$('projectCategory').value=p.category||'commercial';$('projectStatus').value=p.status||'active';$('projectEconomic').value=p.economic||'paid';$('projectBudget').value=p.budget||'';$('projectDeadline').value=p.deadline||'';$('projectNextAction').value=p.nextAction||'';$('projectNotes').value=p.notes||'';$('projectPublic').checked=!!p.public;$('projectPublicSummary').value=p.publicSummary||'';
   $('deleteProjectBtn').style.visibility=id?'visible':'hidden';
-  renderTaskEditor(p.tasks||[]);
+  renderSubprojectEditor(p.subprojects||[]);
   $('projectDialog').showModal();
 }
-function renderTaskEditor(tasks){
-  const box=$('taskEditor');box.innerHTML='';
-  tasks.forEach((t,i)=>addTaskRow(t.text,t.done,i));
+
+function renderSubprojectEditor(subprojects){
+  const box=$('subprojectEditor');box.innerHTML='';
+  subprojects.forEach(s=>addSubprojectBlock(s));
+  if(!subprojects.length)box.innerHTML='<p class="empty-subprojects">Nessun sottoprogetto: aggiungine uno quando questo progetto produce un output o un nuovo filone di lavoro.</p>';
 }
-function addTaskRow(text='',done=false){
-  const row=document.createElement('div');row.className='task-row';
-  row.innerHTML=`<input type="checkbox" ${done?'checked':''}><input type="text" value="${String(text).replace(/"/g,'&quot;')}" placeholder="Task"><button type="button" class="task-remove">×</button>`;
-  row.querySelector('.task-remove').onclick=()=>row.remove();$('taskEditor').appendChild(row);
+function addSubprojectBlock(sub={id:uid('sub'),name:'',status:'active',tasks:[]}){
+  const box=$('subprojectEditor');const empty=box.querySelector('.empty-subprojects');if(empty)empty.remove();
+  const block=document.createElement('section');block.className='subproject-block';block.dataset.id=sub.id||uid('sub');
+  block.innerHTML=`
+    <div class="subproject-top"><input class="sub-name" value="${escapeHtml(sub.name||'')}" placeholder="Nome sottoprogetto / output"><select class="sub-status"><option value="active">Attivo</option><option value="paused">In pausa</option><option value="done">Chiuso</option></select><button type="button" class="sub-remove">×</button></div>
+    <div class="sub-task-list"></div>
+    <button type="button" class="add-sub-task ghost">+ TASK</button>`;
+  block.querySelector('.sub-status').value=sub.status||'active';
+  const taskList=block.querySelector('.sub-task-list');(sub.tasks||[]).forEach(t=>addTaskRow(taskList,t));
+  block.querySelector('.add-sub-task').onclick=()=>addTaskRow(taskList);
+  block.querySelector('.sub-remove').onclick=()=>block.remove();
+  box.appendChild(block);
 }
-function readTasks(){return [...document.querySelectorAll('.task-row')].map(r=>({done:r.querySelector('input[type=checkbox]').checked,text:r.querySelector('input[type=text]').value.trim()})).filter(t=>t.text)}
+function addTaskRow(container,t={id:uid('t'),text:'',status:'todo'}){
+  const row=document.createElement('div');row.className='task-row';row.dataset.id=t.id||uid('t');
+  row.innerHTML=`<select class="task-status"><option value="todo">○ Da fare</option><option value="doing">◐ In corso</option><option value="blocked">! Bloccato</option><option value="done">✓ Fatto</option></select><input class="task-text" value="${escapeHtml(t.text||'')}" placeholder="Cosa devo fare?"><button type="button" class="task-remove">×</button>`;
+  row.querySelector('.task-status').value=t.status||(t.done?'done':'todo');row.querySelector('.task-remove').onclick=()=>row.remove();container.appendChild(row);
+}
+function readSubprojects(){
+  return [...document.querySelectorAll('.subproject-block')].map(b=>({
+    id:b.dataset.id||uid('sub'),name:b.querySelector('.sub-name').value.trim(),status:b.querySelector('.sub-status').value,
+    tasks:[...b.querySelectorAll('.task-row')].map(r=>({id:r.dataset.id||uid('t'),text:r.querySelector('.task-text').value.trim(),status:r.querySelector('.task-status').value})).filter(t=>t.text)
+  })).filter(s=>s.name||s.tasks.length);
+}
 
 $('newProjectBtn').onclick=()=>openDialog();
-$('addTaskBtn').onclick=()=>addTaskRow();
+$('addSubprojectBtn').onclick=()=>addSubprojectBlock();
 $('saveProjectBtn').onclick=async()=>{
-  const project={id:editingId||uid(),name:$('projectName').value.trim(),client:$('projectClient').value.trim(),status:$('projectStatus').value,category:$('projectCategory').value,budget:num($('projectBudget').value),deadline:$('projectDeadline').value,nextAction:$('projectNextAction').value.trim(),notes:$('projectNotes').value.trim(),tasks:readTasks()};
+  const project={id:editingId||uid('prj'),name:$('projectName').value.trim(),category:$('projectCategory').value,status:$('projectStatus').value,economic:$('projectEconomic').value,budget:num($('projectBudget').value),deadline:$('projectDeadline').value,nextAction:$('projectNextAction').value.trim(),notes:$('projectNotes').value.trim(),public:$('projectPublic').checked,publicSummary:$('projectPublicSummary').value.trim(),subprojects:readSubprojects()};
   if(!project.name)return alert('Inserisci il nome del progetto.');
   const i=state.projects.findIndex(p=>p.id===project.id);if(i>=0)state.projects[i]=project;else state.projects.push(project);
   $('projectDialog').close();await saveState();
 };
-$('deleteProjectBtn').onclick=async()=>{if(!editingId||!confirm('Eliminare questo progetto?'))return;state.projects=state.projects.filter(p=>p.id!==editingId);$('projectDialog').close();await saveState();};
+$('deleteProjectBtn').onclick=async()=>{if(!editingId||!confirm('Eliminare questo progetto e i suoi sottoprogetti/task?'))return;state.projects=state.projects.filter(p=>p.id!==editingId);$('projectDialog').close();await saveState();};
 
-document.querySelectorAll('.board-column').forEach(col=>{
-  col.ondragover=e=>{e.preventDefault();col.classList.add('drag-over')};
-  col.ondragleave=()=>col.classList.remove('drag-over');
-  col.ondrop=async e=>{e.preventDefault();col.classList.remove('drag-over');const id=e.dataTransfer.getData('text/plain'),p=projectById(id);if(!p)return;p.status=col.dataset.status;await saveState();};
-});
+document.querySelectorAll('.category-tab').forEach(btn=>btn.onclick=()=>{activeCategory=btn.dataset.category;document.querySelectorAll('.category-tab').forEach(b=>b.classList.toggle('active',b===btn));renderGrid(state.projects||[]);});
 
 loadState();
