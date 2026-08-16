@@ -3,162 +3,87 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ricevute occasionali 2026</title>
+  <title>myAdmin — Ricevute 2026</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="app">
     <header class="topbar">
-      <div>
-        <p class="eyebrow">LAVORO AUTONOMO OCCASIONALE</p>
-        <h1>Ricevute <span>2026</span></h1>
-      </div>
-      <button id="resetYear" class="ghost">Azzera archivio locale</button>
+      <div><p class="eyebrow">MYADMIN / LAVORO AUTONOMO OCCASIONALE</p><h1>Ricevute <span>2026</span></h1></div>
+      <button id="resetYear" class="ghost">Ripristina dati 2026</button>
     </header>
 
     <section class="status-card">
-      <div>
-        <small>Lordo accumulato prima di questa ricevuta</small>
-        <strong id="statusCumulato">€ 0,00</strong>
-      </div>
-      <div>
-        <small>Franchigia contributiva residua</small>
-        <strong id="statusResiduo">€ 5.000,00</strong>
-      </div>
-      <div>
-        <small>Stato</small>
-        <strong id="statusLabel" class="ok">Sotto soglia</strong>
-      </div>
+      <div><small>Lordo accumulato</small><strong id="statusCumulato">€ 3.515,00</strong></div>
+      <div><small>Prima della soglia INPS</small><strong id="statusResiduo">€ 1.485,00</strong></div>
+      <div><small>Stato</small><strong id="statusLabel" class="ok">Sotto soglia</strong></div>
       <div class="progress"><i id="progressBar"></i></div>
     </section>
 
     <div class="layout">
       <section class="panel">
-        <h2>1. Dati ricevuta</h2>
-
+        <h2>Nuova ricevuta</h2>
         <div class="grid two">
-          <label>Numero ricevuta
-            <input id="numero" type="number" min="1" value="1">
-          </label>
-          <label>Data
-            <input id="data" type="date">
-          </label>
+          <label>Numero ricevuta<input id="numero" type="number" min="1" value="9"></label>
+          <label>Data<input id="data" type="date"></label>
         </div>
-
-        <label>Descrizione prestazione
-          <textarea id="descrizione" rows="2" placeholder="Es. Prestazione occasionale di docenza / progettazione grafica / sviluppo web"></textarea>
-        </label>
-
+        <label>Descrizione prestazione<textarea id="descrizione" rows="2" placeholder="Docenza / progettazione / sviluppo web / ..."></textarea></label>
         <div class="grid two">
-          <label>Lordo cumulato precedente (€)
-            <input id="cumulato" inputmode="decimal" value="0">
-          </label>
-          <label>Compenso lordo nuova ricevuta (€)
-            <input id="lordo" inputmode="decimal" placeholder="0,00">
-          </label>
+          <label>Lordo cumulato precedente (€)<input id="cumulato" inputmode="decimal" value="3515"></label>
+          <label>Compenso lordo nuova ricevuta (€)<input id="lordo" inputmode="decimal" placeholder="0,00"></label>
         </div>
 
         <h3>Dati prestatore</h3>
         <div class="grid two">
-          <label>Nome e cognome
-            <input id="mioNome" value="Micol Gelsi">
-          </label>
-          <label>Codice fiscale
-            <input id="mioCf" value="GLSMCL94E50A944K">
-          </label>
-          <label class="span2">Indirizzo
-            <input id="mioIndirizzo" placeholder="Via / Piazza, n., CAP, città">
-          </label>
-          <label>IBAN (facoltativo)
-            <input id="iban" placeholder="IT...">
-          </label>
+          <label>Nome e cognome<input id="mioNome" value="Micol Gelsi"></label>
+          <label>Codice fiscale<input id="mioCf" value="GLSMCL94E50A944K"></label>
+          <label class="span2">Indirizzo<input id="mioIndirizzo" placeholder="Via / Piazza, n., CAP, città"></label>
+          <label>IBAN (facoltativo)<input id="iban" placeholder="IT..."></label>
         </div>
 
         <h3>Committente</h3>
         <div class="grid two">
-          <label>Ragione sociale / Nome
-            <input id="clienteNome" placeholder="Committente">
-          </label>
-          <label>CF / P.IVA
-            <input id="clienteCf" placeholder="Codice fiscale o Partita IVA">
-          </label>
-          <label class="span2">Indirizzo
-            <input id="clienteIndirizzo" placeholder="Sede / indirizzo">
-          </label>
+          <label>Ragione sociale / Nome<input id="clienteNome" placeholder="Committente"></label>
+          <label>CF / P.IVA<input id="clienteCf" placeholder="Codice fiscale o Partita IVA"></label>
+          <label class="span2">Indirizzo<input id="clienteIndirizzo" placeholder="Sede / indirizzo"></label>
         </div>
 
         <div class="switches">
-          <label class="check">
-            <input id="sostituto" type="checkbox" checked>
-            <span>Il committente è sostituto d'imposta → ritenuta d'acconto 20%</span>
-          </label>
-          <label class="check">
-            <input id="altraCopertura" type="checkbox">
-            <span>Sono pensionata o iscritta ad altra previdenza obbligatoria → aliquota INPS 24%</span>
-          </label>
+          <label class="check"><input id="sostituto" type="checkbox" checked><span>Committente sostituto d'imposta → ritenuta 20%</span></label>
+          <label class="check"><input id="altraCopertura" type="checkbox"><span>Pensionata / altra previdenza obbligatoria → aliquota INPS 24%</span></label>
         </div>
-
-        <details>
-          <summary>Impostazioni avanzate</summary>
-          <div class="grid two advanced">
-            <label>Franchigia annua (€)
-              <input id="franchigia" value="5000">
-            </label>
-            <label>Aliquota INPS ordinaria (%)
-              <input id="aliquota" value="33,72">
-            </label>
-            <label>Quota lavoratrice sul contributo
-              <select id="quotaLavoratore">
-                <option value="0.3333333333">1/3</option>
-              </select>
-            </label>
-            <label>Ritenuta d'acconto (%)
-              <input id="ritenutaPerc" value="20">
-            </label>
-          </div>
-          <p class="hint">Default 2026 per lavoro autonomo occasionale senza altra copertura: 33,72%. Se il tuo caso previdenziale è diverso, modifica l'aliquota prima di stampare.</p>
-        </details>
+        <details><summary>Impostazioni avanzate</summary><div class="grid two advanced">
+          <label>Franchigia annua (€)<input id="franchigia" value="5000"></label>
+          <label>Aliquota INPS ordinaria (%)<input id="aliquota" value="33,72"></label>
+          <label>Quota lavoratrice<select id="quotaLavoratore"><option value="0.3333333333">1/3</option></select></label>
+          <label>Ritenuta (%)<input id="ritenutaPerc" value="20"></label>
+        </div><p class="hint">Parametri modificabili: verifica sempre l'aliquota applicabile al tuo caso prima dell'emissione definitiva.</p></details>
       </section>
 
       <aside class="panel calculator">
-        <h2>2. Calcolo</h2>
+        <h2>Calcolo</h2>
         <div class="result"><span>Compenso lordo</span><b id="rLordo">€ 0,00</b></div>
-        <div class="result"><span>Quota ancora in franchigia</span><b id="rFranchigia">€ 0,00</b></div>
+        <div class="result"><span>Quota in franchigia</span><b id="rFranchigia">€ 0,00</b></div>
         <div class="result hot"><span>Imponibile INPS</span><b id="rImponibile">€ 0,00</b></div>
         <div class="result"><span>INPS totale</span><b id="rInpsTot">€ 0,00</b></div>
         <div class="result"><span>INPS a tuo carico (1/3)</span><b id="rInpsMe">€ 0,00</b></div>
-        <div class="result"><span>INPS a carico committente (2/3)</span><b id="rInpsCliente">€ 0,00</b></div>
+        <div class="result"><span>INPS committente (2/3)</span><b id="rInpsCliente">€ 0,00</b></div>
         <div class="result"><span>Ritenuta d'acconto</span><b id="rRitenuta">€ 0,00</b></div>
         <div class="result total"><span>NETTO DA PAGARE</span><b id="rNetto">€ 0,00</b></div>
-
         <div id="warning" class="warning"></div>
-
         <button id="previewBtn" class="primary">Genera ricevuta</button>
         <button id="saveBtn" class="secondary">Salva nel registro</button>
       </aside>
     </div>
 
     <section class="panel history">
-      <div class="historyHead">
-        <h2>Registro locale 2026</h2>
-        <span id="totaleRegistro">Totale: € 0,00</span>
-      </div>
-      <div id="historyEmpty" class="empty">Nessuna ricevuta salvata.</div>
-      <table id="historyTable" hidden>
-        <thead><tr><th>N.</th><th>Data</th><th>Committente</th><th>Lordo</th><th>INPS imponibile</th><th></th></tr></thead>
-        <tbody id="historyBody"></tbody>
-      </table>
+      <div class="historyHead"><div><p class="eyebrow">ARCHIVIO</p><h2>Registro 2026</h2></div><strong id="totaleRegistro">Totale: € 3.515,00</strong></div>
+      <p class="archive-note">I PDF fisici stanno in <code>ricevute/2026/</code>. Le righe senza importo restano in archivio ma non entrano nel cumulato.</p>
+      <table id="historyTable"><thead><tr><th>N.</th><th>Committente</th><th>Lordo</th><th>Netto</th><th>PDF</th><th></th></tr></thead><tbody id="historyBody"></tbody></table>
     </section>
   </main>
 
-  <section id="receipt" class="receipt" aria-hidden="true">
-    <div class="receipt-actions no-print">
-      <button id="closeReceipt">← Torna</button>
-      <button id="printReceipt" class="primary">Stampa / Salva PDF</button>
-    </div>
-    <article id="receiptPaper"></article>
-  </section>
-
-<script src="app.js"></script>
+  <section id="receipt" class="receipt" aria-hidden="true"><div class="receipt-actions no-print"><button id="closeReceipt">← Torna</button><button id="printReceipt" class="primary">Stampa / Salva PDF</button></div><article id="receiptPaper"></article></section>
+  <script src="app.js"></script>
 </body>
 </html>
