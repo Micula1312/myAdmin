@@ -1,98 +1,16 @@
 <!doctype html>
 <html lang="it">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>myAdmin — Progetti</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="projects.css">
-</head>
-<body>
-<main class="app projects-app">
-  <header class="topbar compact-topbar">
-    <div><p class="eyebrow">MYADMIN / WORKSPACE</p><h1>Projects <span>2026</span></h1></div>
-    <div class="top-actions"><a class="ghost nav-link" href="/">RICEVUTE</a><button id="newProjectBtn" class="primary">+ PROGETTO</button></div>
-  </header>
-
-  <nav id="categoryRail" class="category-rail" aria-label="Categorie progetti">
-    <button class="category-dot active" data-category="all"><i></i><span>Tutti</span><b id="cat-all">0</b></button>
-    <button class="category-dot" data-category="commercial"><i></i><span>Commercial Works</span><b id="cat-commercial">0</b></button>
-    <button class="category-dot" data-category="community"><i></i><span>Community</span><b id="cat-community">0</b></button>
-    <button class="category-dot" data-category="personal"><i></i><span>Personal</span><b id="cat-personal">0</b></button>
-  </nav>
-
-  <section class="workspace-columns">
-    <aside class="workspace-col projects-index-col">
-      <div class="col-head"><div><p class="eyebrow">INDEX</p><h2>Progetti</h2></div><div class="col-head-actions"><span id="projectCount">0</span><button id="addProjectQuick" class="col-plus" title="Nuovo progetto">+</button></div></div>
-      <div id="projectIndex" class="project-index scroll-stack"></div>
-    </aside>
-
-    <section class="workspace-col actions-col">
-      <div class="col-head"><div><p class="eyebrow">OGGI</p><h2>Prossime azioni</h2></div><div class="col-head-actions"><span id="openTasks">0 task</span><button id="addTaskQuick" class="col-plus" title="Nuovo task">+</button></div></div>
-      <div id="nextActions" class="actions-list scroll-stack"></div>
-    </section>
-
-    <section class="workspace-col repos-col">
-      <div class="col-head"><div><p class="eyebrow">ACTIVE REPOSITORIES</p><h2>Sottoprogetti / repo</h2></div><div class="col-head-actions"><span id="repoCount">0</span><button id="addRepoQuick" class="col-plus" title="Nuovo repo">+</button></div></div>
-      <div id="repoIndex" class="repo-stack scroll-stack"></div>
-    </section>
-  </section>
-</main>
-
-<dialog id="projectDialog" class="project-dialog">
-  <form method="dialog" id="projectForm">
-    <div class="dialog-head"><div><p class="eyebrow">PROGETTO</p><h2 id="dialogTitle">Nuovo progetto</h2></div><button value="cancel" class="ghost">×</button></div>
-    <input id="projectId" type="hidden">
-    <div class="grid two">
-      <label>Nome progetto<input id="projectName" required></label>
-      <label>Cliente / organizzazione<input id="projectClient"></label>
-      <label>Stato<select id="projectStatus"><option value="active">Attivo</option><option value="intermittent">Intermittente</option><option value="paused">In pausa</option><option value="idea">Da attivare</option><option value="done">Chiuso</option></select></label>
-      <label>Categoria<select id="projectCategory"><option value="commercial">Commercial Works</option><option value="community">Community</option><option value="personal">Personal</option></select></label>
-      <label>Valore / budget (€)<input id="projectBudget" inputmode="decimal" placeholder="0,00"></label>
-      <label>Deadline<input id="projectDeadline" type="date"></label>
-      <label class="span2">Prossima azione<input id="projectNextAction" placeholder="Es. fare homepage, preparare preventivo..."></label>
-      <label class="span2">Note<textarea id="projectNotes" rows="3"></textarea></label>
-    </div>
-    <h3>Sottoprogetti / repository</h3>
-    <p class="hint">Ogni sottoprogetto è un repo operativo e contiene i task di quel lavoro specifico.</p>
-    <div id="subprojectEditor" class="subproject-editor"></div>
-    <button type="button" id="addSubprojectBtn" class="ghost">+ AGGIUNGI REPO</button>
-    <div class="dialog-actions"><button type="button" id="deleteProjectBtn" class="danger-btn">ELIMINA</button><button type="button" id="saveProjectBtn" class="primary">SALVA PROGETTO</button></div>
-  </form>
-</dialog>
-
-<dialog id="repoDialog" class="project-dialog repo-dialog">
-  <form method="dialog">
-    <div class="dialog-head"><div><p class="eyebrow">REPOSITORY</p><h2 id="repoDialogTitle">Repo</h2></div><button value="cancel" class="ghost">×</button></div>
-    <div id="repoDialogMeta" class="repo-dialog-meta"></div>
-    <div id="repoTaskList" class="repo-task-list"></div>
-  </form>
-</dialog>
-
-<dialog id="quickRepoDialog" class="quick-dialog">
-  <form method="dialog">
-    <div class="dialog-head"><div><p class="eyebrow">NEW REPOSITORY</p><h2>Nuovo repo</h2></div><button value="cancel" class="ghost">×</button></div>
-    <label>Dentro il progetto<select id="quickRepoProject"></select></label>
-    <label>Nome repo / sottoprogetto<input id="quickRepoName" placeholder="Es. Nuovo sito"></label>
-    <div class="grid two"><label>Stato<select id="quickRepoStatus"><option value="active">Attivo</option><option value="paused">In pausa</option></select></label><label>GitHub URL<input id="quickRepoUrl" placeholder="https://github.com/..."></label></div>
-    <label>Path locale<input id="quickRepoPath" placeholder="C:/Users/.../repository"></label>
-    <div class="dialog-actions"><span></span><button type="button" id="quickRepoSave" class="primary">CREA REPO</button></div>
-  </form>
-</dialog>
-
-<dialog id="quickTaskDialog" class="quick-dialog">
-  <form method="dialog">
-    <div class="dialog-head"><div><p class="eyebrow">NEW TASK</p><h2>Nuovo task</h2></div><button value="cancel" class="ghost">×</button></div>
-    <label>Progetto<select id="quickTaskProject"></select></label>
-    <label>Repo / sottoprogetto<select id="quickTaskRepo"></select></label>
-    <label>Task<input id="quickTaskText" placeholder="Cosa devo fare?"></label>
-    <label>Stato<select id="quickTaskStatus"><option value="todo">Da fare</option><option value="doing">In corso</option><option value="blocked">Bloccato</option><option value="done">Fatto</option></select></label>
-    <div class="dialog-actions"><span></span><button type="button" id="quickTaskSave" class="primary">AGGIUNGI TASK</button></div>
-  </form>
-</dialog>
-
-<script src="projects.js"></script>
-<script src="repo-inline.js"></script>
-<script src="quick-add.js"></script>
-</body>
-</html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>myAdmin — Progetti</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="projects.css"></head>
+<body><main class="app projects-app">
+<header class="topbar compact-topbar"><div><p class="eyebrow">MYADMIN / WORKSPACE</p><h1>Projects <span>2026</span></h1></div><div class="top-actions"><a class="ghost nav-link" href="/">RICEVUTE</a><button id="newProjectBtn" class="primary">+ PROGETTO</button></div></header>
+<nav id="categoryRail" class="category-rail" aria-label="Categorie progetti"><button class="category-dot active" data-category="all"><i></i><span>Tutti</span><b id="cat-all">0</b></button><button class="category-dot" data-category="commercial"><i></i><span>Commercial Works</span><b id="cat-commercial">0</b></button><button class="category-dot" data-category="community"><i></i><span>Community</span><b id="cat-community">0</b></button><button class="category-dot" data-category="personal"><i></i><span>Personal</span><b id="cat-personal">0</b></button></nav>
+<section class="workspace-columns planning-columns">
+<aside class="workspace-col projects-index-col"><div class="col-head"><div><p class="eyebrow">INDEX</p><h2>Progetti</h2></div><div class="col-head-actions"><span id="projectCount">0</span><button id="addProjectQuick" class="col-plus">+</button></div></div><div id="projectIndex" class="project-index scroll-stack"></div></aside>
+<section class="workspace-col week-col"><div class="col-head"><div><p class="eyebrow" id="weekLabel">THIS WEEK</p><h2>Repo della settimana</h2></div><div class="col-head-actions"><span id="weekCount">0</span><button id="addWeekRepo" class="col-plus">+</button></div></div><div id="weekRepos" class="week-repo-list scroll-stack"></div></section>
+<section class="workspace-col today-col"><div class="col-head"><div><p class="eyebrow" id="todayLabel">TODAY</p><h2>To do</h2></div><div class="col-head-actions"><span id="todayCount">0</span><button id="addTodayTask" class="col-plus">+</button></div></div><div id="todayTasks" class="today-task-list scroll-stack"></div></section>
+</section></main>
+<dialog id="projectDialog" class="project-dialog"><form method="dialog" id="projectForm"><div class="dialog-head"><div><p class="eyebrow">PROGETTO</p><h2 id="dialogTitle">Nuovo progetto</h2></div><button value="cancel" class="ghost">×</button></div><input id="projectId" type="hidden"><div class="grid two"><label>Nome progetto<input id="projectName" required></label><label>Cliente / organizzazione<input id="projectClient"></label><label>Stato<select id="projectStatus"><option value="active">Attivo</option><option value="intermittent">Intermittente</option><option value="paused">In pausa</option><option value="idea">Da attivare</option><option value="done">Chiuso</option></select></label><label>Categoria<select id="projectCategory"><option value="commercial">Commercial Works</option><option value="community">Community</option><option value="personal">Personal</option></select></label><label>Valore / budget (€)<input id="projectBudget" inputmode="decimal"></label><label>Deadline<input id="projectDeadline" type="date"></label><label class="span2">Prossima azione<input id="projectNextAction"></label><label class="span2">Note<textarea id="projectNotes" rows="3"></textarea></label></div><h3>Sottoprogetti / repository</h3><div id="subprojectEditor" class="subproject-editor"></div><button type="button" id="addSubprojectBtn" class="ghost">+ AGGIUNGI REPO</button><div class="dialog-actions"><button type="button" id="deleteProjectBtn" class="danger-btn">ELIMINA</button><button type="button" id="saveProjectBtn" class="primary">SALVA PROGETTO</button></div></form></dialog>
+<dialog id="repoDialog" class="project-dialog repo-dialog"><form method="dialog"><div class="dialog-head"><div><p class="eyebrow">REPOSITORY</p><h2 id="repoDialogTitle">Repo</h2></div><button value="cancel" class="ghost">×</button></div><div id="repoDialogMeta" class="repo-dialog-meta"></div><div id="repoTaskList" class="repo-task-list"></div></form></dialog>
+<dialog id="weekRepoDialog" class="quick-dialog"><form method="dialog"><div class="dialog-head"><div><p class="eyebrow">THIS WEEK</p><h2>Aggiungi repo</h2></div><button value="cancel" class="ghost">×</button></div><label>Repo<select id="weekRepoSelect"></select></label><div class="dialog-actions"><span></span><button type="button" id="weekRepoSave" class="primary">AGGIUNGI</button></div></form></dialog>
+<dialog id="todayTaskDialog" class="quick-dialog"><form method="dialog"><div class="dialog-head"><div><p class="eyebrow">TODAY</p><h2>Aggiungi task</h2></div><button value="cancel" class="ghost">×</button></div><label>Repo della settimana<select id="todayRepoSelect"></select></label><label>Task<select id="todayTaskSelect"></select></label><div class="dialog-actions"><span></span><button type="button" id="todayTaskSave" class="primary">PORTA IN TODAY</button></div></form></dialog>
+<script src="projects.js"></script><script src="repo-inline.js"></script><script src="planning.js"></script></body></html>
