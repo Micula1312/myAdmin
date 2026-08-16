@@ -3,6 +3,7 @@ const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).f
 const num=v=>{let s=String(v??'').trim().replace(/\s/g,'');if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(',','.');return Number(s)||0};
 const uid=p=>`${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 
 const PROJECT_SEED=[
 {id:'asap',name:'ASAP',category:'community',status:'active',client:'ASAP',budget:0,deadline:'',nextAction:'Impostare struttura e prima architettura del nuovo sito',notes:'',subprojects:[{id:'asap-site',name:'Nuovo sito',status:'active',repoUrl:'',localPath:'',tasks:[{id:uid('t'),text:'Definire struttura pagine',status:'todo'},{id:uid('t'),text:'Raccogliere contenuti e riferimenti',status:'todo'},{id:uid('t'),text:'Preparare prima direzione visiva',status:'todo'}]}]},
@@ -17,30 +18,93 @@ const TASK_LABELS={todo:'Da fare',doing:'In corso',blocked:'Bloccato',done:'Fatt
 const PROJECT_TINTS=['#f4eee8','#edf2ea','#eaf0f4','#f2ecef','#eef0e7','#f3f0e8','#e9eff0','#f0ece7'];
 let state=null,editingId=null,activeCategory='all',selectedProject='all';
 
-async function loadState(){try{const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)throw 0;state=await r.json()}catch(e){state=JSON.parse(localStorage.getItem('myadmin-projects-fallback')||'{"paid":[],"pending":[]}')}migrate();await saveState(false);render()}
-function migrate(){if(!Array.isArray(state.projects))state.projects=JSON.parse(JSON.stringify(PROJECT_SEED));state.projects=state.projects.filter(p=>!['gaia-site','ssf'].includes(p.id));state.projects.forEach(p=>{if(!['commercial','community','personal'].includes(p.category))p.category='commercial';if(!Array.isArray(p.subprojects))p.subprojects=[];p.subprojects.forEach(s=>{s.repoUrl=s.repoUrl||'';s.localPath=s.localPath||'';s.status=s.status||'active';if(!Array.isArray(s.tasks))s.tasks=[];s.tasks=s.tasks.map(t=>({id:t.id||uid('t'),text:t.text||'',status:t.status||(t.done?'done':'todo')}))})});['asap','blivet','aotu','myadmin'].forEach(id=>{if(!state.projects.some(p=>p.id===id))state.projects.push(JSON.parse(JSON.stringify(PROJECT_SEED.find(p=>p.id===id))))})}
-async function saveState(renderAfter=true){try{await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)})}catch(e){localStorage.setItem('myadmin-projects-fallback',JSON.stringify(state))}if(renderAfter)render()}
-function projectById(id){return state.projects.find(p=>p.id===id)}
+async function loadState(){
+  try{const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)throw 0;state=await r.json()}
+  catch(e){state=JSON.parse(localStorage.getItem('myadmin-projects-fallback')||'{"paid":[],"pending":[]}')}
+  migrate();await saveState(false);render();
+}
+function migrate(){
+  if(!Array.isArray(state.projects))state.projects=JSON.parse(JSON.stringify(PROJECT_SEED));
+  state.projects=state.projects.filter(p=>!['gaia-site','ssf'].includes(p.id));
+  state.projects.forEach(p=>{
+    if(!['commercial','community','personal'].includes(p.category))p.category='commercial';
+    if(!Array.isArray(p.subprojects))p.subprojects=[];
+    p.subprojects.forEach(s=>{
+      s.repoUrl=s.repoUrl||'';s.localPath=s.localPath||'';s.status=s.status||'active';
+      if(!Array.isArray(s.tasks))s.tasks=[];
+      s.tasks=s.tasks.map(t=>({id:t.id||uid('t'),text:t.text||'',status:t.status||(t.done?'done':'todo'),completedAt:t.completedAt||''}));
+    });
+  });
+  ['asap','blivet','aotu','myadmin'].forEach(id=>{if(!state.projects.some(p=>p.id===id))state.projects.push(JSON.parse(JSON.stringify(PROJECT_SEED.find(p=>p.id===id))))});
+}
+async function saveState(renderAfter=true){
+  try{await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)})}
+  catch(e){localStorage.setItem('myadmin-projects-fallback',JSON.stringify(state))}
+  if(renderAfter)render();
+}
+function projectById(id){return(state.projects||[]).find(p=>p.id===id)}
 function openTaskCount(p){return(p.subprojects||[]).flatMap(s=>s.tasks||[]).filter(t=>t.status!=='done').length}
 function taskPctSub(s){const t=s.tasks||[];return t.length?Math.round(t.filter(x=>x.status==='done').length/t.length*100):0}
 function repoRecords(){return(state.projects||[]).flatMap(p=>(p.subprojects||[]).map(s=>({project:p,sub:s,open:(s.tasks||[]).filter(t=>t.status!=='done').length})))}
-function filteredProjects(){return activeCategory==='all'?state.projects:state.projects.filter(p=>p.category===activeCategory)}
+function filteredProjects(){return activeCategory==='all'?(state.projects||[]):(state.projects||[]).filter(p=>p.category===activeCategory)}
 
-function render(){const projects=state.projects||[];$('projectCount').textContent=projects.length;$('repoCount').textContent=repoRecords().filter(r=>r.sub.status==='active').length;$('openTasks').textContent=`${projects.reduce((a,p)=>a+openTaskCount(p),0)} task`;['all','commercial','community','personal'].forEach(c=>{$('cat-'+c).textContent=c==='all'?projects.length:projects.filter(p=>p.category===c).length});renderProjectIndex();renderActions();renderRepos()}
-function renderProjectIndex(){const projects=filteredProjects();const root=$('projectIndex');root.innerHTML=projects.length?projects.map((p,i)=>`<article class="project-index-card ${selectedProject===p.id?'selected':''}" data-id="${p.id}" style="--project-tint:${PROJECT_TINTS[(state.projects.indexOf(p))%PROJECT_TINTS.length]}"><span class="tiny-category"><i></i>${CATEGORY_LABELS[p.category]}</span><h3>${esc(p.name)}</h3><small>${STATUS_LABELS[p.status]||p.status}${p.client?' · '+esc(p.client):''}</small><div class="project-index-meta"><span>${(p.subprojects||[]).length} repo</span><span>${openTaskCount(p)} task</span></div></article>`).join(''):'<div class="empty-board">Nessun progetto.</div>';root.querySelectorAll('.project-index-card').forEach(c=>c.onclick=()=>{selectedProject=selectedProject===c.dataset.id?'all':c.dataset.id;renderProjectIndex();renderActions();renderRepos()});}
+function render(){
+  const projects=state.projects||[];
+  if($('projectCount'))$('projectCount').textContent=projects.length;
+  ['all','commercial','community','personal'].forEach(c=>{const el=$('cat-'+c);if(el)el.textContent=c==='all'?projects.length:projects.filter(p=>p.category===c).length});
+  renderProjectIndex();
+}
+function renderProjectIndex(){
+  const root=$('projectIndex');if(!root)return;
+  const projects=filteredProjects();
+  root.innerHTML=projects.length?projects.map(p=>`<article class="project-index-card ${selectedProject===p.id?'selected':''}" data-id="${p.id}" style="--project-tint:${PROJECT_TINTS[state.projects.indexOf(p)%PROJECT_TINTS.length]}">
+    <button type="button" class="project-edit-pencil" title="Modifica progetto" aria-label="Modifica ${esc(p.name)}">✎</button>
+    <span class="tiny-category"><i></i>${CATEGORY_LABELS[p.category]}</span><h3>${esc(p.name)}</h3><small>${STATUS_LABELS[p.status]||p.status}${p.client?' · '+esc(p.client):''}</small><div class="project-index-meta"><span>${(p.subprojects||[]).length} repo</span><span>${openTaskCount(p)} task</span></div>
+  </article>`).join(''):'<div class="empty-board">Nessun progetto.</div>';
+  root.querySelectorAll('.project-index-card').forEach(c=>{
+    c.onclick=e=>{if(e.target.closest('.project-edit-pencil'))return;selectedProject=selectedProject===c.dataset.id?'all':c.dataset.id;renderProjectIndex()};
+    c.querySelector('.project-edit-pencil').onclick=e=>{e.stopPropagation();openDialog(c.dataset.id)};
+  });
+}
 function scopedProjects(){let p=filteredProjects();if(selectedProject!=='all')p=p.filter(x=>x.id===selectedProject);return p}
-function renderActions(){const rows=[];scopedProjects().forEach(p=>{(p.subprojects||[]).forEach(s=>(s.tasks||[]).filter(t=>['doing','blocked'].includes(t.status)).forEach(t=>rows.push({p,s,t,type:t.status})));if(p.nextAction)rows.push({p,action:p.nextAction,type:'next'})});$('nextActions').innerHTML=rows.length?rows.slice(0,18).map(r=>r.t?`<button class="action-card ${r.type}" data-project="${r.p.id}" data-sub="${r.s.id}"><small>${r.type==='blocked'?'Bloccato':'In corso'} · ${esc(r.p.name)} / ${esc(r.s.name)}</small><b>${esc(r.t.text)}</b></button>`:`<button class="action-card" data-project="${r.p.id}"><small>Prossima azione · ${esc(r.p.name)}</small><b>${esc(r.action)}</b></button>`).join(''):'<div class="empty-board">Nessuna prossima azione.</div>';$('nextActions').querySelectorAll('.action-card').forEach(b=>b.onclick=()=>b.dataset.sub?openRepo(b.dataset.project,b.dataset.sub):openDialog(b.dataset.project));}
-function renderRepos(){let repos=repoRecords().filter(r=>r.sub.status!=='done');repos=repos.filter(r=>scopedProjects().some(p=>p.id===r.project.id));repos.sort((a,b)=>({active:0,paused:1}[a.sub.status]??9)-({active:0,paused:1}[b.sub.status]??9)||a.project.name.localeCompare(b.project.name));$('repoIndex').innerHTML=repos.length?repos.map(({project:p,sub:s,open})=>{const tasks=(s.tasks||[]).slice(0,4).map(t=>`<div class="repo-task-preview-row ${t.status}"><i></i><span>${esc(t.text)}</span></div>`).join('');return `<article class="repo-card ${s.status}" data-project="${p.id}" data-sub="${s.id}"><div class="repo-card-top"><span class="repo-path">${CATEGORY_LABELS[p.category]} / ${esc(p.name)}</span><span class="repo-state ${s.status}">${SUB_STATUS_LABELS[s.status]}</span></div><h3>${esc(s.name)}</h3><div class="repo-task-preview">${tasks||'<span class="empty-board">Nessun task</span>'}</div><div class="task-progress"><i style="width:${taskPctSub(s)}%"></i></div><div class="repo-card-foot"><span>${open} aperti / ${(s.tasks||[]).length}</span><span>${taskPctSub(s)}%${s.repoUrl?' · GIT':''}${s.localPath?' · LOCAL':''}</span></div></article>`}).join(''):'<div class="empty-board">Nessun repo attivo in questa selezione.</div>';$('repoIndex').querySelectorAll('.repo-card').forEach(c=>c.onclick=()=>openRepo(c.dataset.project,c.dataset.sub));}
 
-function openDialog(id=null,category='commercial'){editingId=id;const p=id?projectById(id):{id:'',name:'',client:'',category,status:'active',budget:'',deadline:'',nextAction:'',notes:'',subprojects:[]};$('dialogTitle').textContent=id?'Modifica progetto':'Nuovo progetto';$('projectId').value=p.id||'';$('projectName').value=p.name||'';$('projectClient').value=p.client||'';$('projectStatus').value=p.status||'active';$('projectCategory').value=p.category||category;$('projectBudget').value=p.budget||'';$('projectDeadline').value=p.deadline||'';$('projectNextAction').value=p.nextAction||'';$('projectNotes').value=p.notes||'';$('deleteProjectBtn').style.visibility=id?'visible':'hidden';renderSubprojectEditor(p.subprojects||[]);$('projectDialog').showModal()}
+function openDialog(id=null,category='commercial'){
+  editingId=id;
+  const p=id?projectById(id):{id:'',name:'',client:'',category,status:'active',budget:'',deadline:'',nextAction:'',notes:'',subprojects:[]};
+  $('dialogTitle').textContent=id?'Modifica progetto':'Nuovo progetto';$('projectId').value=p.id||'';$('projectName').value=p.name||'';$('projectClient').value=p.client||'';$('projectStatus').value=p.status||'active';$('projectCategory').value=p.category||category;$('projectBudget').value=p.budget||'';$('projectDeadline').value=p.deadline||'';$('projectNextAction').value=p.nextAction||'';$('projectNotes').value=p.notes||'';$('deleteProjectBtn').style.visibility=id?'visible':'hidden';
+  renderSubprojectEditor(p.subprojects||[]);renderProjectTimeline(p);$('projectDialog').showModal();
+}
+function renderProjectTimeline(p){
+  const root=$('projectTimeline');if(!root)return;
+  if(!p?.id){root.innerHTML='';return}
+  const rows=[];(p.subprojects||[]).forEach(s=>(s.tasks||[]).filter(t=>t.status==='done').forEach(t=>rows.push({repo:s.name,text:t.text,date:t.completedAt||''})));
+  rows.sort((a,b)=>(b.date||'0000').localeCompare(a.date||'0000'));
+  root.innerHTML=`<div class="timeline-head"><div><p class="eyebrow">HISTORY</p><h3>Timeline interventi</h3></div><span>${rows.length} completati</span></div>${rows.length?`<div class="project-timeline-list">${rows.map(r=>`<article class="timeline-event"><time>${r.date?new Date(r.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}):'data non registrata'}</time><div><small>${esc(r.repo)}</small><b>${esc(r.text)}</b></div></article>`).join('')}</div>`:'<p class="empty-board">Qui compariranno via via i task completati del progetto.</p>'}`;
+}
 function renderSubprojectEditor(subs){const box=$('subprojectEditor');box.innerHTML='';subs.forEach(addSubprojectBlock);if(!subs.length)box.innerHTML='<p class="empty-board">Nessun repo ancora.</p>'}
-function addSubprojectBlock(sub={id:uid('sub'),name:'',status:'active',repoUrl:'',localPath:'',tasks:[]}){const box=$('subprojectEditor');const empty=box.querySelector('.empty-board');if(empty)empty.remove();const block=document.createElement('section');block.className='subproject-block';block.dataset.id=sub.id||uid('sub');block.innerHTML=`<div class="subproject-top"><input class="sub-name" value="${esc(sub.name||'')}" placeholder="Nome repo / sottoprogetto"><select class="sub-status"><option value="active">Attivo</option><option value="paused">In pausa</option><option value="done">Chiuso</option></select><button type="button" class="sub-remove">×</button></div><div class="grid two repo-fields"><label>Git repo URL<input class="sub-repo" value="${esc(sub.repoUrl||'')}" placeholder="https://github.com/..."></label><label>Path locale<input class="sub-path" value="${esc(sub.localPath||'')}" placeholder="C:/Users/.../repository"></label></div><div class="sub-task-list"></div><button type="button" class="add-sub-task ghost">+ TASK</button>`;block.querySelector('.sub-status').value=sub.status||'active';const list=block.querySelector('.sub-task-list');(sub.tasks||[]).forEach(t=>addTaskRow(list,t));block.querySelector('.add-sub-task').onclick=()=>addTaskRow(list);block.querySelector('.sub-remove').onclick=()=>block.remove();box.appendChild(block)}
-function addTaskRow(container,t={id:uid('t'),text:'',status:'todo'}){const row=document.createElement('div');row.className='task-row';row.dataset.id=t.id||uid('t');row.innerHTML=`<select class="task-status"><option value="todo">○ Da fare</option><option value="doing">◐ In corso</option><option value="blocked">! Bloccato</option><option value="done">✓ Fatto</option></select><input class="task-text" value="${esc(t.text||'')}" placeholder="Task"><button type="button" class="task-remove">×</button>`;row.querySelector('.task-status').value=t.status||(t.done?'done':'todo');row.querySelector('.task-remove').onclick=()=>row.remove();container.appendChild(row)}
-function readSubprojects(){return[...document.querySelectorAll('.subproject-block')].map(b=>({id:b.dataset.id||uid('sub'),name:b.querySelector('.sub-name').value.trim(),status:b.querySelector('.sub-status').value,repoUrl:b.querySelector('.sub-repo').value.trim(),localPath:b.querySelector('.sub-path').value.trim(),tasks:[...b.querySelectorAll('.task-row')].map(r=>({id:r.dataset.id||uid('t'),text:r.querySelector('.task-text').value.trim(),status:r.querySelector('.task-status').value})).filter(t=>t.text)})).filter(s=>s.name||s.tasks.length)}
-function openRepo(projectId,subId){const p=projectById(projectId),s=(p?.subprojects||[]).find(x=>x.id===subId);if(!p||!s)return;$('repoDialogTitle').textContent=s.name;$('repoDialogMeta').innerHTML=`<span class="category-pill">${CATEGORY_LABELS[p.category]}</span><b>${esc(p.name)}</b><span class="repo-state ${s.status}">${SUB_STATUS_LABELS[s.status]}</span>${s.repoUrl?`<a href="${esc(s.repoUrl)}" target="_blank" rel="noopener">GITHUB ↗</a>`:''}${s.localPath?`<code>${esc(s.localPath)}</code>`:''}`;$('repoTaskList').innerHTML=(s.tasks||[]).length?(s.tasks||[]).map(t=>`<label class="repo-task ${t.status}"><span>${TASK_LABELS[t.status]}</span><b>${esc(t.text)}</b></label>`).join(''):'<div class="empty-board">Nessun task.</div>';$('repoDialog').showModal()}
+function addSubprojectBlock(sub={id:uid('sub'),name:'',status:'active',repoUrl:'',localPath:'',tasks:[]}){
+  const box=$('subprojectEditor'),empty=box.querySelector('.empty-board');if(empty)empty.remove();const block=document.createElement('section');block.className='subproject-block';block.dataset.id=sub.id||uid('sub');
+  block.innerHTML=`<div class="subproject-top"><input class="sub-name" value="${esc(sub.name||'')}" placeholder="Nome repo / sottoprogetto"><select class="sub-status"><option value="active">Attivo</option><option value="paused">In pausa</option><option value="done">Chiuso</option></select><button type="button" class="sub-remove">×</button></div><div class="grid two repo-fields"><label>Git repo URL<input class="sub-repo" value="${esc(sub.repoUrl||'')}"></label><label>Path locale<input class="sub-path" value="${esc(sub.localPath||'')}"></label></div><div class="sub-task-list"></div><button type="button" class="add-sub-task ghost">+ TASK</button>`;
+  block.querySelector('.sub-status').value=sub.status||'active';const list=block.querySelector('.sub-task-list');(sub.tasks||[]).forEach(t=>addTaskRow(list,t));block.querySelector('.add-sub-task').onclick=()=>addTaskRow(list);block.querySelector('.sub-remove').onclick=()=>block.remove();box.appendChild(block);
+}
+function addTaskRow(container,t={id:uid('t'),text:'',status:'todo',completedAt:''}){
+  const row=document.createElement('div');row.className='task-row';row.dataset.id=t.id||uid('t');row.dataset.completedAt=t.completedAt||'';
+  row.innerHTML=`<select class="task-status"><option value="todo">○ Da fare</option><option value="doing">◐ In corso</option><option value="blocked">! Bloccato</option><option value="done">✓ Fatto</option></select><input class="task-text" value="${esc(t.text||'')}" placeholder="Task"><button type="button" class="task-remove">×</button>`;
+  row.querySelector('.task-status').value=t.status||(t.done?'done':'todo');row.querySelector('.task-remove').onclick=()=>row.remove();container.appendChild(row);
+}
+function readSubprojects(){
+  return[...document.querySelectorAll('.subproject-block')].map(b=>({id:b.dataset.id||uid('sub'),name:b.querySelector('.sub-name').value.trim(),status:b.querySelector('.sub-status').value,repoUrl:b.querySelector('.sub-repo').value.trim(),localPath:b.querySelector('.sub-path').value.trim(),tasks:[...b.querySelectorAll('.task-row')].map(r=>{const status=r.querySelector('.task-status').value;let completedAt=r.dataset.completedAt||'';if(status==='done'&&!completedAt)completedAt=todayKey();if(status!=='done')completedAt='';return{id:r.dataset.id||uid('t'),text:r.querySelector('.task-text').value.trim(),status,completedAt}}).filter(t=>t.text)})).filter(s=>s.name||s.tasks.length)
+}
+function openRepo(projectId,subId){
+  const p=projectById(projectId),s=(p?.subprojects||[]).find(x=>x.id===subId);if(!p||!s)return;
+  $('repoDialogTitle').textContent=s.name;$('repoDialogMeta').innerHTML=`<span class="category-pill">${CATEGORY_LABELS[p.category]}</span><b>${esc(p.name)}</b><span class="repo-state ${s.status}">${SUB_STATUS_LABELS[s.status]}</span>${s.repoUrl?`<a href="${esc(s.repoUrl)}" target="_blank" rel="noopener">GITHUB ↗</a>`:''}${s.localPath?`<code>${esc(s.localPath)}</code>`:''}`;
+  $('repoTaskList').innerHTML=(s.tasks||[]).length?(s.tasks||[]).map(t=>`<label class="repo-task ${t.status}"><span>${TASK_LABELS[t.status]}</span><b>${esc(t.text)}</b></label>`).join(''):'<div class="empty-board">Nessun task.</div>';$('repoDialog').showModal();
+}
 
-$('newProjectBtn').onclick=()=>openDialog(null,activeCategory==='all'?'commercial':activeCategory);$('addSubprojectBtn').onclick=()=>addSubprojectBlock();
+$('newProjectBtn').onclick=()=>openDialog(null,activeCategory==='all'?'commercial':activeCategory);
+if($('addProjectQuick'))$('addProjectQuick').onclick=()=>openDialog(null,activeCategory==='all'?'commercial':activeCategory);
+$('addSubprojectBtn').onclick=()=>addSubprojectBlock();
 $('saveProjectBtn').onclick=async()=>{const project={id:editingId||uid('prj'),name:$('projectName').value.trim(),client:$('projectClient').value.trim(),status:$('projectStatus').value,category:$('projectCategory').value,budget:num($('projectBudget').value),deadline:$('projectDeadline').value,nextAction:$('projectNextAction').value.trim(),notes:$('projectNotes').value.trim(),subprojects:readSubprojects()};if(!project.name)return alert('Inserisci il nome del progetto.');const i=state.projects.findIndex(p=>p.id===project.id);if(i>=0)state.projects[i]=project;else state.projects.push(project);$('projectDialog').close();await saveState()};
 $('deleteProjectBtn').onclick=async()=>{if(!editingId||!confirm('Eliminare questo progetto e tutti i suoi repo/task?'))return;state.projects=state.projects.filter(p=>p.id!==editingId);selectedProject='all';$('projectDialog').close();await saveState()};
-document.querySelectorAll('.category-dot').forEach(b=>b.onclick=()=>{activeCategory=b.dataset.category;selectedProject='all';document.querySelectorAll('.category-dot').forEach(x=>x.classList.toggle('active',x===b));renderProjectIndex();renderActions();renderRepos()});
+document.querySelectorAll('.category-dot').forEach(b=>b.onclick=()=>{activeCategory=b.dataset.category;selectedProject='all';document.querySelectorAll('.category-dot').forEach(x=>x.classList.toggle('active',x===b));renderProjectIndex()});
 loadState();
