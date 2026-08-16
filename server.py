@@ -17,6 +17,7 @@ DATA_DIR = ROOT / "data"
 RECEIPTS_DIR = ROOT / "ricevute" / "2026"
 STATE_FILE = DATA_DIR / "registro-2026.json"
 XLSX_FILE = DATA_DIR / "registro-2026.xlsx"
+BRAIN_FILE = DATA_DIR / "auto-micol-thoughts.json"
 HOST = "127.0.0.1"
 PORT = 5050
 
@@ -55,6 +56,45 @@ DEFAULT_STATE = {
 def ensure_dirs() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     RECEIPTS_DIR.mkdir(parents=True, exist_ok=True)
+    if not BRAIN_FILE.exists():
+        BRAIN_FILE.write_text(json.dumps({"version": 1, "thoughts": []}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def load_brain() -> dict:
+    ensure_dirs()
+    try:
+        data = json.loads(BRAIN_FILE.read_text(encoding="utf-8"))
+        if isinstance(data, dict) and isinstance(data.get("thoughts"), list):
+            return data
+    except Exception:
+        pass
+    return {"version": 1, "thoughts": []}
+
+
+def save_brain(data: dict) -> None:
+    ensure_dirs()
+    tmp = BRAIN_FILE.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(BRAIN_FILE)
+
+
+def append_thought(payload: dict) -> dict:
+    text = str(payload.get("text", "")).strip()
+    if not text:
+        raise ValueError("frase vuota")
+    brain = load_brain()
+    item = {
+        "id": f"thought-{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
+        "text": text,
+        "source": str(payload.get("source", "unknown")),
+        "model": str(payload.get("model", "unknown")),
+        "context": str(payload.get("context", "")),
+        "createdAt": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "verdict": None,
+    }
+    brain["thoughts"].append(item)
+    save_brain(brain)
+    return item
 
 
 def load_state() -> dict:
@@ -127,7 +167,6 @@ def write_xlsx(state: dict) -> None:
     rows = receipt_rows(state)
     paid_total = sum(float(r.get("lordo", 0) or 0) for r in state.get("paid", []) if not r.get("excluded"))
     pending_total = sum(float(r.get("lordo", 0) or 0) for r in state.get("pending", []))
-
     sheet_rows = []
     summary = [
         ["MYADMIN — REGISTRO 2026"],
@@ -142,60 +181,31 @@ def write_xlsx(state: dict) -> None:
             style = 1 if r_idx in (1, 4) else (2 if c_idx in (6, 7, 8, 10, 11, 12, 13) and r_idx > 4 else 0)
             cells.append(xml_cell(f"{col_name(c_idx)}{r_idx}", value, style))
         sheet_rows.append(f'<row r="{r_idx}">{"".join(cells)}</row>')
-
     widths = [9, 14, 13, 25, 28, 13, 18, 16, 14, 16, 17, 13, 13, 14, 24, 55]
     cols_xml = "".join(f'<col min="{i}" max="{i}" width="{w}" customWidth="1"/>' for i, w in enumerate(widths, start=1))
     last_row = max(4, len(all_rows))
     sheet_xml = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-  <cols>{cols_xml}</cols>
-  <sheetData>{''.join(sheet_rows)}</sheetData>
-  <autoFilter ref="A4:P{last_row}"/>
+  <cols>{cols_xml}</cols><sheetData>{''.join(sheet_rows)}</sheetData><autoFilter ref="A4:P{last_row}"/>
 </worksheet>'''
-
     styles_xml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <numFmts count="1"><numFmt numFmtId="164" formatCode="#.##0,00 [$€-it-IT]"/></numFmts>
-  <fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Arial"/></font></fonts>
-  <fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF111111"/><bgColor indexed="64"/></patternFill></fill></fills>
-  <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
-  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-  <cellXfs count="3">
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-    <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
-    <xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
-  </cellXfs>
-  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
-</styleSheet>'''
-
-    workbook_xml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Registro 2026" sheetId="1" r:id="rId1"/></sheets></workbook>'''
-    workbook_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'''
-    root_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'''
-    content_types = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'''
-
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="#.##0,00 [$€-it-IT]"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF111111"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'''
+    workbook_xml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Registro 2026" sheetId="1" r:id="rId1"/></sheets></workbook>'''
+    workbook_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'''
+    root_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'''
+    content_types = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'''
     tmp = XLSX_FILE.with_suffix(".xlsx.tmp")
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("[Content_Types].xml", content_types)
-        z.writestr("_rels/.rels", root_rels)
-        z.writestr("xl/workbook.xml", workbook_xml)
-        z.writestr("xl/_rels/workbook.xml.rels", workbook_rels)
-        z.writestr("xl/styles.xml", styles_xml)
-        z.writestr("xl/worksheets/sheet1.xml", sheet_xml)
+        z.writestr("[Content_Types].xml", content_types); z.writestr("_rels/.rels", root_rels); z.writestr("xl/workbook.xml", workbook_xml); z.writestr("xl/_rels/workbook.xml.rels", workbook_rels); z.writestr("xl/styles.xml", styles_xml); z.writestr("xl/worksheets/sheet1.xml", sheet_xml)
     tmp.replace(XLSX_FILE)
 
 
 def pdf_index() -> dict[str, str]:
-    ensure_dirs()
-    result = {}
+    ensure_dirs(); result = {}
     for path in sorted(RECEIPTS_DIR.glob("*.pdf")):
         m = re.match(r"^0*(\d{1,4})(?=[\s._-]|\.pdf$)", path.name, re.I)
-        if m:
-            result.setdefault(str(int(m.group(1))), f"/ricevute/2026/{path.name}")
+        if m: result.setdefault(str(int(m.group(1))), f"/ricevute/2026/{path.name}")
     return result
 
 
@@ -205,38 +215,34 @@ class Handler(SimpleHTTPRequestHandler):
 
     def send_json(self, payload, status=200):
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(data)
+        self.send_response(status); self.send_header("Content-Type", "application/json; charset=utf-8"); self.send_header("Content-Length", str(len(data))); self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(data)
+
+    def read_json_body(self):
+        length = int(self.headers.get("Content-Length", "0"))
+        if length <= 0 or length > 2_000_000: raise ValueError("payload non valido")
+        return json.loads(self.rfile.read(length).decode("utf-8"))
 
     def do_GET(self):
         path = urlparse(self.path).path
-        if path == "/api/state":
-            return self.send_json(load_state())
-        if path == "/api/pdfs":
-            return self.send_json({"files": pdf_index()})
-        if path == "/api/status":
-            return self.send_json({"ok": True, "xlsx": "data/registro-2026.xlsx", "json": "data/registro-2026.json"})
-        if path == "/data/registro-2026.xlsx":
-            write_xlsx(load_state())
+        if path == "/api/state": return self.send_json(load_state())
+        if path == "/api/pdfs": return self.send_json({"files": pdf_index()})
+        if path == "/api/brain/thoughts": return self.send_json(load_brain())
+        if path == "/api/status": return self.send_json({"ok": True, "xlsx": "data/registro-2026.xlsx", "json": "data/registro-2026.json", "brain": "data/auto-micol-thoughts.json"})
+        if path == "/data/registro-2026.xlsx": write_xlsx(load_state())
         return super().do_GET()
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path != "/api/state":
-            return self.send_json({"ok": False, "error": "not found"}, 404)
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 2_000_000:
-                raise ValueError("payload non valido")
-            state = json.loads(self.rfile.read(length).decode("utf-8"))
-            if not isinstance(state, dict) or not isinstance(state.get("paid"), list) or not isinstance(state.get("pending"), list):
-                raise ValueError("struttura stato non valida")
-            save_state(state)
-            return self.send_json({"ok": True, "xlsx": "data/registro-2026.xlsx"})
+            payload = self.read_json_body()
+            if path == "/api/brain/thoughts":
+                if not isinstance(payload, dict): raise ValueError("struttura frase non valida")
+                return self.send_json({"ok": True, "thought": append_thought(payload)}, 201)
+            if path == "/api/state":
+                if not isinstance(payload, dict) or not isinstance(payload.get("paid"), list) or not isinstance(payload.get("pending"), list): raise ValueError("struttura stato non valida")
+                save_state(payload)
+                return self.send_json({"ok": True, "xlsx": "data/registro-2026.xlsx"})
+            return self.send_json({"ok": False, "error": "not found"}, 404)
         except Exception as exc:
             return self.send_json({"ok": False, "error": str(exc)}, 400)
 
@@ -245,17 +251,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
-    ensure_dirs()
-    state = load_state()
-    write_xlsx(state)
-    url = f"http://{HOST}:{PORT}"
-    print("\nmyAdmin avviato")
-    print(f"  App:   {url}")
-    print(f"  Excel: {XLSX_FILE}")
-    print(f"  PDF:   {RECEIPTS_DIR}")
-    print("\nCTRL+C per chiudere.\n")
-    threading.Timer(0.7, lambda: webbrowser.open(url)).start()
-    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
+    ensure_dirs(); state = load_state(); write_xlsx(state); url = f"http://{HOST}:{PORT}"
+    print("\nmyAdmin avviato"); print(f"  App:   {url}"); print(f"  Excel: {XLSX_FILE}"); print(f"  PDF:   {RECEIPTS_DIR}"); print(f"  Brain: {BRAIN_FILE}"); print("\nCTRL+C per chiudere.\n")
+    threading.Timer(0.7, lambda: webbrowser.open(url)).start(); ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
 
 
 if __name__ == "__main__":
