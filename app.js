@@ -1,11 +1,6 @@
 const $ = id => document.getElementById(id);
-const STORAGE_KEY = "myadmin-2026-v4";
-const clone = o => JSON.parse(JSON.stringify(o));
-const euro = n => new Intl.NumberFormat("it-IT", {style:"currency", currency:"EUR"}).format(Number(n)||0);
-const num = v => { let s=String(v??"").trim().replace(/\s/g,""); if(s.includes(",")&&s.includes(".")) s=s.replace(/\./g,"").replace(",","."); else s=s.replace(",", "."); return Math.max(0,Number(s)||0); };
-const dateIT = v => { if(!v) return ""; const [y,m,d]=v.split("-"); return `${d}/${m}/${y}`; };
-const slug = s => String(s||"ricevuta").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40);
 
+const STORAGE_KEY = "myadmin-2026-v4";
 const DEFAULT_STATE = {
   lastConfirmed: 8,
   paid: [
@@ -23,18 +18,57 @@ const DEFAULT_STATE = {
   ]
 };
 
-function getState(){
-  const raw=localStorage.getItem(STORAGE_KEY);
-  if(raw){try{return JSON.parse(raw)}catch(e){}}
-  const state=clone(DEFAULT_STATE); localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); return state;
+let state = clone(DEFAULT_STATE);
+let editingPendingId = null;
+let serverOnline = false;
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+const euro = n => new Intl.NumberFormat("it-IT", {style:"currency",currency:"EUR"}).format(Number(n)||0);
+const num = v => { if(typeof v === "number") return v; let s=String(v??"").trim().replace(/\s/g,""); if(s.includes(",")&&s.includes(".")) s=s.replace(/\./g,"").replace(",","."); else s=s.replace(",", "."); return Math.max(0,Number(s)||0); };
+const dateIT = v => { if(!v) return ""; const [y,m,d]=v.split("-"); return `${d}/${m}/${y}`; };
+const slug = s => String(s||"ricevuta").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40);
+
+function setServerBadge(text, ok){
+  let el=$("serverStatusBadge");
+  if(!el){ el=document.createElement("span"); el.id="serverStatusBadge"; el.className="server-badge"; document.querySelector(".topbar")?.appendChild(el); }
+  el.textContent=text; el.classList.toggle("online",!!ok);
 }
-function setState(state){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));renderAll();}
-function paidTotal(state=getState()){return state.paid.filter(r=>!r.excluded).reduce((a,r)=>a+num(r.lordo),0)}
-function pendingTotal(state=getState()){return state.pending.reduce((a,r)=>a+num(r.lordo),0)}
-function settingsFromForm(){return {franchigia:num($("franchigia").value)||5000, aliquota:$("altraCopertura").checked?24:num($("aliquota").value), quotaLavoratore:num($("quotaLavoratore").value)||1/3, sostituto:$("sostituto").checked, ritenutaPerc:num($("ritenutaPerc").value)||20};}
+
+function localSave(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
+async function serverSave(){
+  if(!serverOnline) return;
+  try{
+    const res=await fetch("/api/state",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state)});
+    if(!res.ok) throw new Error("save failed");
+    setServerBadge("EXCEL SALVATO",true);
+  }catch(e){ serverOnline=false; setServerBadge("SOLO BROWSER",false); console.warn(e); }
+}
+function saveAndRender(){ localSave(); renderAll(); serverSave(); }
+
+async function loadInitialState(){
+  try{
+    const res=await fetch("/api/state",{cache:"no-store"});
+    if(!res.ok) throw new Error("server unavailable");
+    const incoming=await res.json();
+    if(!Array.isArray(incoming.paid)||!Array.isArray(incoming.pending)) throw new Error("bad state");
+    state=incoming; serverOnline=true; localSave(); setServerBadge("EXCEL COLLEGATO",true);
+  }catch(e){
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){ try{ state=JSON.parse(raw); }catch(_){ state=clone(DEFAULT_STATE); } }
+    setServerBadge("SOLO BROWSER",false);
+  }
+  renderAll();
+}
+
+function paidTotal(){ return state.paid.filter(r=>!r.excluded).reduce((a,r)=>a+num(r.lordo),0); }
+function pendingTotal(){ return state.pending.reduce((a,r)=>a+num(r.lordo),0); }
+function nextNumber(){ return num(state.lastConfirmed)+1; }
+
+function settingsFromForm(){
+  return {franchigia:num($("franchigia").value)||5000, aliquota:$("altraCopertura").checked?24:num($("aliquota").value), quotaLavoratore:num($("quotaLavoratore").value)||1/3, sostituto:$("sostituto").checked, ritenutaPerc:num($("ritenutaPerc").value)||20};
+}
 function calcFrom(cumulato,lordo,settings=settingsFromForm()){
-  const residuo=Math.max(0,settings.franchigia-cumulato);
-  const quotaInFranchigia=Math.min(lordo,residuo);
+  const quotaInFranchigia=Math.min(lordo,Math.max(0,settings.franchigia-cumulato));
   const imponibile=Math.max(0,lordo-quotaInFranchigia);
   const inpsTot=imponibile*settings.aliquota/100;
   const inpsMe=inpsTot*settings.quotaLavoratore;
@@ -43,11 +77,9 @@ function calcFrom(cumulato,lordo,settings=settingsFromForm()){
   const netto=lordo-ritenuta-inpsMe;
   return {...settings,cumulato,lordo,quotaInFranchigia,imponibile,inpsTot,inpsMe,inpsCliente,ritenuta,netto,dopo:cumulato+lordo};
 }
-function profile(){return {nome:$("mioNome").value||"",cf:$("mioCf").value||"",indirizzo:$("mioIndirizzo").value||"",iban:$("iban").value||""};}
-function formSnapshot(){
-  const c=calcFrom(num($("cumulato").value),num($("lordo").value));
-  return {numero:num($("numero").value),data:$("data").value,descrizione:$("descrizione").value,clienteNome:$("clienteNome").value,clienteCf:$("clienteCf").value,clienteIndirizzo:$("clienteIndirizzo").value,prestatore:profile(),...c};
-}
+function profile(){ return {nome:$("mioNome").value||"",cf:$("mioCf").value||"",indirizzo:$("mioIndirizzo").value||"",iban:$("iban").value||""}; }
+function formSnapshot(){ const c=calcFrom(num($("cumulato").value),num($("lordo").value)); return {numero:num($("numero").value),data:$("data").value,descrizione:$("descrizione").value,clienteNome:$("clienteNome").value,clienteCf:$("clienteCf").value,clienteIndirizzo:$("clienteIndirizzo").value,prestatore:profile(),...c}; }
+
 function receiptHTML(s,mini=false){
   const p=s.prestatore||profile();
   const inps=s.imponibile>0?`<div class="r-row"><span>Imponibile INPS</span><b>${euro(s.imponibile)}</b></div><div class="r-row"><span>Gestione Separata ${String(s.aliquota).replace(".",",")}% — quota lavoratrice</span><b>− ${euro(s.inpsMe)}</b></div>`:"";
@@ -58,55 +90,72 @@ function receiptHTML(s,mini=false){
 
 function renderPreview(){
   const s=formSnapshot();
-  $("rLordo").textContent=euro(s.lordo);$("rImponibile").textContent=euro(s.imponibile);$("rNetto").textContent=euro(s.netto);
-  $("suggestedFilename").textContent=`${String(s.numero||0).padStart(3,"0")}-${slug(s.clienteNome)}.pdf`;
+  $("rLordo").textContent=euro(s.lordo); $("rImponibile").textContent=euro(s.imponibile); $("rNetto").textContent=euro(s.netto);
+  $("suggestedFilename").textContent=`${String(s.numero||nextNumber()).padStart(3,"0")}-${slug(s.clienteNome)}.pdf`;
   $("warning").className=s.imponibile>0?"warning attention":"warning";
   $("warning").innerHTML=s.imponibile>0?`Questa ricevuta supera la franchigia per <b>${euro(s.imponibile)}</b>. Tua quota INPS stimata: <b>${euro(s.inpsMe)}</b>.`:`Cumulato dopo il pagamento: <b>${euro(s.dopo)}</b>.`;
   $("receiptPreview").innerHTML=receiptHTML(s,true);
 }
-function renderSummary(){
-  const state=getState(),paid=paidTotal(state),pending=pendingTotal(state),f=num($("franchigia").value)||5000;
-  $("statusPaid").textContent=euro(paid);$("statusPending").textContent=euro(pending);$("statusProjected").textContent=euro(paid+pending);$("statusResiduo").textContent=euro(Math.max(0,f-paid));$("progressBar").style.width=Math.min(100,paid/f*100)+"%";
+function renderSummary(){ const paid=paidTotal(),pending=pendingTotal(),f=num($("franchigia").value)||5000; $("statusPaid").textContent=euro(paid); $("statusPending").textContent=euro(pending); $("statusProjected").textContent=euro(paid+pending); $("statusResiduo").textContent=euro(Math.max(0,f-paid)); $("progressBar").style.width=Math.min(100,paid/f*100)+"%"; $("totaleRegistro").textContent=euro(paid); }
+
+function pendingComputed(){
+  let running=paidTotal();
+  return state.pending.map((r,i)=>{ const c=calcFrom(running,num(r.lordo),{...settingsFromForm(),sostituto:r.sostituto!==false}); const out={...r,numero:num(state.lastConfirmed)+i+1,cumulatoPrima:running,...c}; running+=num(r.lordo); return out; });
 }
-function pendingComputed(state=getState()){
-  let running=paidTotal(state);
-  return state.pending.map((r,i)=>{const settings={...settingsFromForm(),sostituto:r.sostituto!==false};const c=calcFrom(running,num(r.lordo),settings);const out={...r,numero:num(state.lastConfirmed)+i+1,cumulatoPrima:running,...c};running+=num(r.lordo);return out;});
-}
+
 function renderPending(){
-  const state=getState(),computed=pendingComputed(state),list=$("pendingList");list.innerHTML="";
-  if(!computed.length){list.innerHTML='<p class="empty">Nessuna ricevuta in sospeso.</p>';return;}
-  computed.forEach((r,i)=>{const card=document.createElement("article");card.className="flow-card pending-card";card.draggable=true;card.dataset.id=r.id;card.innerHTML=`<div class="drag-handle">⋮⋮</div><div class="flow-num">${r.numero}</div><div class="flow-main"><b>${r.clienteNome||"Senza nome"}</b><small>${r.data?dateIT(r.data):"data da definire"} · prima ${euro(r.cumulatoPrima)}</small><small>${r.imponibile>0?`INPS su ${euro(r.imponibile)}`:"dentro franchigia"}</small></div><div class="flow-money">${euro(r.lordo)}</div><div class="flow-actions"><button class="mini edit-pending" data-i="${i}">MODIFICA</button><button class="mini print-pending" data-i="${i}">STAMPA</button>${i===0?`<button class="mini paid-btn">INCASSATA</button>`:""}<button class="mini danger delete-pending" data-i="${i}">×</button></div>`;list.appendChild(card);});
+  const list=$("pendingList"),computed=pendingComputed(); list.innerHTML="";
+  if(!computed.length){ list.innerHTML='<p class="empty">Nessuna ricevuta in sospeso.</p>'; return; }
+  computed.forEach((r,i)=>{ const card=document.createElement("article"); card.className="flow-card pending-card"; card.draggable=true; card.dataset.id=r.id; card.innerHTML=`<div class="drag-handle">⋮⋮</div><div class="flow-num">${r.numero}</div><div class="flow-main"><b>${r.clienteNome||"Senza nome"}</b><small>${r.data?dateIT(r.data):"data da definire"} · prima ${euro(r.cumulatoPrima)}</small><small>${r.imponibile>0?`INPS su ${euro(r.imponibile)}`:"dentro franchigia"}</small></div><div class="flow-money">${euro(r.lordo)}</div><div class="flow-actions"><button class="mini edit-pending" data-i="${i}">MODIFICA</button><button class="mini print-pending" data-i="${i}">STAMPA</button>${i===0?`<button class="mini paid-btn">INCASSATA</button>`:""}<button class="mini danger delete-pending" data-i="${i}">×</button></div>`; list.appendChild(card); });
   let dragged=null;
-  list.querySelectorAll(".pending-card").forEach(card=>{card.ondragstart=()=>{dragged=card.dataset.id;card.classList.add("dragging")};card.ondragend=()=>card.classList.remove("dragging");card.ondragover=e=>e.preventDefault();card.ondrop=e=>{e.preventDefault();const target=card.dataset.id;if(!dragged||dragged===target)return;const s=getState(),from=s.pending.findIndex(x=>x.id===dragged),to=s.pending.findIndex(x=>x.id===target);const [item]=s.pending.splice(from,1);s.pending.splice(to,0,item);setState(s);};});
-  list.querySelectorAll(".edit-pending").forEach(b=>b.onclick=()=>loadPending(+b.dataset.i));
-  list.querySelectorAll(".print-pending").forEach(b=>b.onclick=()=>{loadPending(+b.dataset.i);printCurrent();});
-  list.querySelectorAll(".delete-pending").forEach(b=>b.onclick=()=>{const s=getState();s.pending.splice(+b.dataset.i,1);setState(s)});
-  const paid=list.querySelector(".paid-btn");if(paid)paid.onclick=markFirstPaid;
+  list.querySelectorAll(".pending-card").forEach(card=>{ card.ondragstart=()=>{dragged=card.dataset.id;card.classList.add("dragging")}; card.ondragend=()=>card.classList.remove("dragging"); card.ondragover=e=>e.preventDefault(); card.ondrop=e=>{e.preventDefault();const target=card.dataset.id;if(!dragged||dragged===target)return;const from=state.pending.findIndex(x=>x.id===dragged),to=state.pending.findIndex(x=>x.id===target);const [item]=state.pending.splice(from,1);state.pending.splice(to,0,item);saveAndRender();}; });
+  list.querySelectorAll(".edit-pending").forEach(b=>b.onclick=()=>loadPending(+b.dataset.i,false));
+  list.querySelectorAll(".print-pending").forEach(b=>b.onclick=()=>loadPending(+b.dataset.i,true));
+  list.querySelectorAll(".delete-pending").forEach(b=>b.onclick=()=>{if(confirm("Eliminare questa ricevuta in sospeso?")){state.pending.splice(+b.dataset.i,1);saveAndRender();}});
+  const paid=list.querySelector(".paid-btn"); if(paid) paid.onclick=markFirstPaid;
 }
+
 function renderPaid(){
-  const state=getState(),list=$("paidList");list.innerHTML="";
-  [...state.paid].reverse().forEach((r,revIndex)=>{const i=state.paid.length-1-revIndex;const card=document.createElement("article");card.className="flow-card paid-card";card.dataset.receiptNumber=r.numero;card.innerHTML=`<div class="flow-num">${r.numero??"—"}</div><div class="flow-main"><b>${r.clienteNome||"—"}</b><small>${r.tipo||"Prestazione occasionale"}</small></div><div class="flow-money">${euro(r.lordo)}</div><div class="flow-actions"><span class="pdf-slot missing">PDF —</span>${r.snapshot?`<button class="mini revisit-paid" data-i="${i}">RIVEDI / STAMPA</button><button class="mini reopen-paid" data-i="${i}">RIMETTI IN SOSPESO</button><button class="mini danger delete-paid" data-i="${i}">ELIMINA</button>`:""}</div>`;list.appendChild(card);});
+  const list=$("paidList"); list.innerHTML="";
+  [...state.paid].reverse().forEach((r,revIndex)=>{ const i=state.paid.length-1-revIndex; const card=document.createElement("article"); card.className="flow-card paid-card"; card.dataset.receiptNumber=r.numero; card.innerHTML=`<div class="flow-num">${r.numero??"—"}</div><div class="flow-main"><b>${r.clienteNome||"—"}</b><small>${r.tipo||"Prestazione occasionale"}</small></div><div class="flow-money">${euro(r.lordo)}</div><div class="flow-actions"><span class="pdf-slot missing">PDF —</span>${r.snapshot?`<button class="mini revisit-paid" data-i="${i}">RIVEDI / STAMPA</button>`:""}<button class="mini reopen-paid" data-i="${i}">RIMETTI IN SOSPESO</button><button class="mini danger delete-paid" data-i="${i}">ELIMINA</button></div>`; list.appendChild(card); });
   list.querySelectorAll(".revisit-paid").forEach(b=>b.onclick=()=>openPaid(+b.dataset.i));
   list.querySelectorAll(".reopen-paid").forEach(b=>b.onclick=()=>reopenPaid(+b.dataset.i));
   list.querySelectorAll(".delete-paid").forEach(b=>b.onclick=()=>deletePaid(+b.dataset.i));
-  $("totaleRegistro").textContent=euro(paidTotal(state));
   document.dispatchEvent(new CustomEvent("myadmin:paid-rendered"));
 }
-function renderAll(){renderSummary();renderPending();renderPaid();setBlankDefaults();}
-function setBlankDefaults(){const s=getState();$("numero").value=num(s.lastConfirmed)+1;$("cumulato").value=paidTotal(s);renderPreview();}
-function clearForm(){const s=getState();$("numero").value=num(s.lastConfirmed)+1;$("data").value=new Date().toISOString().slice(0,10);$("descrizione").value="";$("lordo").value="";$("clienteNome").value="";$("clienteCf").value="";$("clienteIndirizzo").value="";$("cumulato").value=paidTotal(s);renderPreview();}
-function loadPending(i){const r=pendingComputed(getState())[i];if(!r)return;$("numero").value=r.numero;$("cumulato").value=r.cumulatoPrima;$("lordo").value=r.lordo;$("data").value=r.data||new Date().toISOString().slice(0,10);$("descrizione").value=r.descrizione||"";$("clienteNome").value=r.clienteNome||"";$("clienteCf").value=r.clienteCf||"";$("clienteIndirizzo").value=r.clienteIndirizzo||"";$("sostituto").checked=r.sostituto!==false;renderPreview();window.scrollTo({top:0,behavior:"smooth"});}
-function markFirstPaid(){
-  const state=getState();if(!state.pending.length)return;const r=state.pending.shift(),cumulatoPrima=paidTotal(state),number=num(state.lastConfirmed)+1,settings={...settingsFromForm(),sostituto:r.sostituto!==false},c=calcFrom(cumulatoPrima,num(r.lordo),settings);const snapshot={numero:number,data:r.data||new Date().toISOString().slice(0,10),descrizione:r.descrizione||"",clienteNome:r.clienteNome||"",clienteCf:r.clienteCf||"",clienteIndirizzo:r.clienteIndirizzo||"",prestatore:profile(),...c};state.paid.push({numero:number,clienteNome:r.clienteNome,tipo:"Prestazione occasionale",lordo:r.lordo,netto:c.netto,snapshot});state.lastConfirmed=number;setState(state);
-}
-function openPaid(i){const r=getState().paid[i];if(!r?.snapshot)return;const s=r.snapshot;$("numero").value=s.numero;$("data").value=s.data;$("descrizione").value=s.descrizione;$("cumulato").value=s.cumulato;$("lordo").value=s.lordo;$("clienteNome").value=s.clienteNome;$("clienteCf").value=s.clienteCf;$("clienteIndirizzo").value=s.clienteIndirizzo;$("sostituto").checked=s.sostituto;renderPreview();window.scrollTo({top:0,behavior:"smooth"});}
-function reopenPaid(i){const state=getState(),r=state.paid[i];if(!r?.snapshot)return;if(!confirm(`Rimettere la ricevuta n. ${r.numero} in sospeso?`))return;state.paid.splice(i,1);state.pending.unshift({id:`reopen-${Date.now()}`,clienteNome:r.snapshot.clienteNome,clienteCf:r.snapshot.clienteCf,clienteIndirizzo:r.snapshot.clienteIndirizzo,lordo:r.snapshot.lordo,data:r.snapshot.data,descrizione:r.snapshot.descrizione,sostituto:r.snapshot.sostituto});if(r.numero===state.lastConfirmed)state.lastConfirmed=Math.max(...state.paid.filter(x=>!x.excluded).map(x=>num(x.numero)),0);setState(state);}
-function deletePaid(i){const state=getState(),r=state.paid[i];if(!r?.snapshot)return;if(!confirm(`Eliminare la ricevuta n. ${r.numero} dal registro myAdmin? Il PDF locale non verrà cancellato.`))return;state.paid.splice(i,1);if(r.numero===state.lastConfirmed)state.lastConfirmed=Math.max(...state.paid.filter(x=>!x.excluded).map(x=>num(x.numero)),0);setState(state);}
-function printCurrent(){const s=formSnapshot();$("printPaper").innerHTML=receiptHTML(s,false);document.body.classList.add("printing");window.print();setTimeout(()=>document.body.classList.remove("printing"),300);}
-function saveProfile(){localStorage.setItem("myadmin-profile",JSON.stringify(profile()));}
-function loadProfile(){const p=JSON.parse(localStorage.getItem("myadmin-profile")||"{}");if(p.nome)$("mioNome").value=p.nome;if(p.cf)$("mioCf").value=p.cf;if(p.indirizzo)$("mioIndirizzo").value=p.indirizzo;if(p.iban)$("iban").value=p.iban;}
 
-["data","descrizione","lordo","clienteNome","clienteCf","clienteIndirizzo","sostituto","altraCopertura","franchigia","aliquota","quotaLavoratore","ritenutaPerc","mioNome","mioCf","mioIndirizzo","iban"].forEach(id=>{const el=$(id);const ev=el.type==="checkbox"||el.tagName==="SELECT"?"change":"input";el.addEventListener(ev,()=>{if(["mioNome","mioCf","mioIndirizzo","iban"].includes(id))saveProfile();renderPreview();if(["franchigia","aliquota","altraCopertura","quotaLavoratore","ritenutaPerc"].includes(id)){renderSummary();renderPending();}});});
-$("savePendingBtn").onclick=()=>{const lordo=num($("lordo").value);if(!lordo)return alert("Inserisci il compenso lordo.");const state=getState();state.pending.push({id:`p-${Date.now()}`,clienteNome:$("clienteNome").value||"Senza nome",clienteCf:$("clienteCf").value,clienteIndirizzo:$("clienteIndirizzo").value,lordo,data:$("data").value,descrizione:$("descrizione").value,sostituto:$("sostituto").checked});setState(state);clearForm();};
-$("clearFormBtn").onclick=clearForm;$("printReceiptBtn").onclick=printCurrent;$("resetYear").onclick=()=>{if(confirm("Ripristinare i dati iniziali 2026?")){localStorage.setItem(STORAGE_KEY,JSON.stringify(clone(DEFAULT_STATE)));renderAll();}};
-loadProfile();if(!$("data").value)$("data").value=new Date().toISOString().slice(0,10);renderAll();
+function renderAll(){ renderSummary(); renderPending(); renderPaid(); setBlankDefaults(); }
+function setBlankDefaults(){ if(editingPendingId) return; $("numero").value=nextNumber(); $("cumulato").value=paidTotal(); renderPreview(); }
+function clearForm(){ editingPendingId=null; $("savePendingBtn").textContent="AGGIUNGI IN SOSPESO"; $("numero").value=nextNumber(); $("data").value=new Date().toISOString().slice(0,10); $("descrizione").value=""; $("lordo").value=""; $("clienteNome").value=""; $("clienteCf").value=""; $("clienteIndirizzo").value=""; $("cumulato").value=paidTotal(); renderPreview(); }
+function loadPending(i,print=false){ const r=pendingComputed()[i]; if(!r)return; editingPendingId=r.id; $("savePendingBtn").textContent="SALVA MODIFICHE"; $("numero").value=r.numero; $("cumulato").value=r.cumulatoPrima; $("lordo").value=r.lordo; $("data").value=r.data||new Date().toISOString().slice(0,10); $("descrizione").value=r.descrizione||""; $("clienteNome").value=r.clienteNome||""; $("clienteCf").value=r.clienteCf||""; $("clienteIndirizzo").value=r.clienteIndirizzo||""; $("sostituto").checked=r.sostituto!==false; renderPreview(); if(print)printCurrent(); else window.scrollTo({top:0,behavior:"smooth"}); }
+
+function savePendingFromForm(){
+  const lordo=num($("lordo").value); if(!lordo)return alert("Inserisci il compenso lordo.");
+  const item={id:editingPendingId||`p-${Date.now()}`,clienteNome:$("clienteNome").value||"Senza nome",clienteCf:$("clienteCf").value,clienteIndirizzo:$("clienteIndirizzo").value,lordo,data:$("data").value,descrizione:$("descrizione").value,sostituto:$("sostituto").checked};
+  if(editingPendingId){ const i=state.pending.findIndex(r=>r.id===editingPendingId); if(i>=0)state.pending[i]=item; } else state.pending.push(item);
+  saveAndRender(); clearForm();
+}
+function markFirstPaid(){
+  if(!state.pending.length)return;
+  const r=state.pending.shift(),cumulatoPrima=paidTotal(),number=num(state.lastConfirmed)+1,c=calcFrom(cumulatoPrima,num(r.lordo),{...settingsFromForm(),sostituto:r.sostituto!==false});
+  const snapshot={numero:number,data:r.data||new Date().toISOString().slice(0,10),descrizione:r.descrizione||"",clienteNome:r.clienteNome||"",clienteCf:r.clienteCf||"",clienteIndirizzo:r.clienteIndirizzo||"",prestatore:profile(),...c};
+  state.paid.push({numero:number,clienteNome:r.clienteNome,tipo:"Prestazione occasionale",lordo:r.lordo,netto:c.netto,data:snapshot.data,descrizione:snapshot.descrizione,snapshot}); state.lastConfirmed=number; editingPendingId=null; saveAndRender(); clearForm();
+}
+function reopenPaid(i){ const r=state.paid[i]; if(!r||!confirm(`Rimettere la ricevuta n. ${r.numero} in sospeso?`))return; state.paid.splice(i,1); state.pending.unshift({id:`reopen-${Date.now()}`,clienteNome:r.clienteNome,clienteCf:r.snapshot?.clienteCf||"",clienteIndirizzo:r.snapshot?.clienteIndirizzo||"",lordo:r.lordo,data:r.data||r.snapshot?.data||"",descrizione:r.descrizione||r.snapshot?.descrizione||"",sostituto:r.snapshot?.sostituto!==false}); state.lastConfirmed=Math.max(0,...state.paid.map(x=>num(x.numero))); saveAndRender(); }
+function deletePaid(i){ const r=state.paid[i]; if(!r||!confirm(`Eliminare la voce n. ${r.numero} dal registro? Il PDF locale non verrà cancellato.`))return; state.paid.splice(i,1); state.lastConfirmed=Math.max(0,...state.paid.map(x=>num(x.numero))); saveAndRender(); }
+
+function printSnapshot(s){ if(!s)return; $("printPaper").innerHTML=receiptHTML(s,false); $("printView").classList.add("active"); setTimeout(()=>{window.print();$("printView").classList.remove("active")},50); }
+function printCurrent(){ const s=formSnapshot(); if(!s.lordo)return alert("Inserisci il compenso lordo."); printSnapshot(s); }
+function openPaid(i){ printSnapshot(state.paid[i]?.snapshot); }
+
+function saveProfile(){ localStorage.setItem("myadmin-profile",JSON.stringify(profile())); }
+function loadProfile(){ try{ const p=JSON.parse(localStorage.getItem("myadmin-profile")||"{}"); if(p.nome)$("mioNome").value=p.nome;if(p.cf)$("mioCf").value=p.cf;if(p.indirizzo)$("mioIndirizzo").value=p.indirizzo;if(p.iban)$("iban").value=p.iban; }catch(_){} }
+
+["data","descrizione","lordo","clienteNome","clienteCf","clienteIndirizzo","sostituto","altraCopertura","franchigia","aliquota","quotaLavoratore","ritenutaPerc"].forEach(id=>{ const el=$(id); if(!el)return; el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"?"change":"input",()=>{renderPreview();if(id==="franchigia")renderSummary();}); });
+["mioNome","mioCf","mioIndirizzo","iban"].forEach(id=>$(id)?.addEventListener("input",()=>{saveProfile();renderPreview();}));
+$("savePendingBtn").onclick=savePendingFromForm;
+$("clearFormBtn").onclick=clearForm;
+$("printReceiptBtn").onclick=printCurrent;
+$("resetYear").onclick=()=>{if(confirm("Ripristinare i dati iniziali 2026?")){state=clone(DEFAULT_STATE);editingPendingId=null;saveAndRender();clearForm();}};
+
+loadProfile(); $("data").value=new Date().toISOString().slice(0,10); loadInitialState();
