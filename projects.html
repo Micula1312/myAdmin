@@ -11,8 +11,8 @@
 <main class="app projects-app">
   <header class="topbar">
     <div>
-      <p class="eyebrow">MYADMIN / WORKSPACE</p>
-      <h1>Projects <span>2026</span></h1>
+      <p class="eyebrow">MYADMIN / GESTIONE PROGETTI</p>
+      <h1>Progetti <span>2026</span></h1>
     </div>
     <div class="top-actions">
       <a class="ghost nav-link" href="/">RICEVUTE</a>
@@ -21,85 +21,62 @@
   </header>
 
   <section class="project-summary">
-    <article><small>Progetti attivi</small><strong id="activeCount">0</strong></article>
+    <article><small>Progetti</small><strong id="projectCount">0</strong></article>
+    <article><small>Repo attivi</small><strong id="repoCount">0</strong></article>
     <article><small>Task aperti</small><strong id="openTasks">0</strong></article>
-    <article><small>Task in corso</small><strong id="doingTasks">0</strong></article>
-    <article><small>Output pubblicabili</small><strong id="publicCount">0</strong></article>
+    <article><small>Valore progetti</small><strong id="projectValue">€ 0,00</strong></article>
   </section>
 
-  <section class="panel today-panel">
-    <div class="section-head">
-      <div><p class="eyebrow">OPERATIVO</p><h2>Da fare adesso</h2></div>
-      <span class="microcopy">I task sono l'unità di lavoro; i progetti possono restare vivi per anni.</span>
-    </div>
+  <section class="panel quick-task-panel">
+    <div class="section-head"><div><p class="eyebrow">OGGI</p><h2>Prossime azioni</h2></div></div>
     <div id="nextActions" class="next-actions"></div>
   </section>
 
-  <nav class="category-tabs" aria-label="Categorie progetti">
-    <button class="category-tab active" data-category="all">TUTTI <b id="cat-all">0</b></button>
-    <button class="category-tab" data-category="commercial">COMMERCIAL WORKS <b id="cat-commercial">0</b></button>
-    <button class="category-tab" data-category="community">COMMUNITY <b id="cat-community">0</b></button>
-    <button class="category-tab" data-category="personal">PERSONAL <b id="cat-personal">0</b></button>
-  </nav>
+  <section class="panel repo-index-panel">
+    <div class="section-head repo-index-head">
+      <div><p class="eyebrow">REPOSITORY INDEX</p><h2>Sottoprogetti / repo attivi</h2></div>
+      <div class="repo-filters" id="repoFilters">
+        <button data-filter="all" class="repo-filter active">TUTTI</button>
+        <button data-filter="commercial">COMMERCIAL WORKS</button>
+        <button data-filter="community">COMMUNITY</button>
+        <button data-filter="personal">PERSONAL</button>
+      </div>
+    </div>
+    <div id="repoIndex" class="repo-index"></div>
+  </section>
 
-  <section id="projectGrid" class="project-grid"></section>
+  <section class="category-sections" id="categorySections"></section>
 </main>
 
 <dialog id="projectDialog" class="project-dialog">
   <form method="dialog" id="projectForm">
-    <div class="dialog-head">
-      <div><p class="eyebrow">PROJECT</p><h2 id="dialogTitle">Nuovo progetto</h2></div>
-      <button value="cancel" class="ghost icon-btn">×</button>
-    </div>
+    <div class="dialog-head"><div><p class="eyebrow">PROGETTO</p><h2 id="dialogTitle">Nuovo progetto</h2></div><button value="cancel" class="ghost">×</button></div>
     <input id="projectId" type="hidden">
-
     <div class="grid two">
-      <label>Nome progetto<input id="projectName" required placeholder="ASAP, AOTU, BLIVET..."></label>
-      <label>Categoria
-        <select id="projectCategory">
-          <option value="commercial">Commercial Works</option>
-          <option value="community">Community</option>
-          <option value="personal">Personal</option>
-        </select>
-      </label>
-      <label>Stato
-        <select id="projectStatus">
-          <option value="active">Attivo</option>
-          <option value="intermittent">Intermittente / ricorrente</option>
-          <option value="paused">In pausa</option>
-          <option value="idea">Da attivare</option>
-          <option value="done">Chiuso</option>
-        </select>
-      </label>
-      <label>Tipo economico
-        <select id="projectEconomic">
-          <option value="paid">Pagato / commerciale</option>
-          <option value="unpaid">Non pagato</option>
-          <option value="mixed">Misto</option>
-          <option value="na">Non applicabile</option>
-        </select>
-      </label>
-      <label>Budget / valore (€)<input id="projectBudget" inputmode="decimal" placeholder="0,00"></label>
-      <label>Deadline generale<input id="projectDeadline" type="date"></label>
-      <label class="span2">Prossima azione<input id="projectNextAction" placeholder="La prossima cosa concreta da fare"></label>
+      <label>Nome progetto<input id="projectName" required></label>
+      <label>Cliente / organizzazione<input id="projectClient"></label>
+      <label>Stato<select id="projectStatus"><option value="active">Attivo</option><option value="intermittent">Intermittente</option><option value="paused">In pausa</option><option value="idea">Da attivare</option><option value="done">Chiuso</option></select></label>
+      <label>Categoria<select id="projectCategory"><option value="commercial">Commercial Works</option><option value="community">Community</option><option value="personal">Personal</option></select></label>
+      <label>Valore / budget (€)<input id="projectBudget" inputmode="decimal" placeholder="0,00"></label>
+      <label>Deadline<input id="projectDeadline" type="date"></label>
+      <label class="span2">Prossima azione<input id="projectNextAction" placeholder="Es. fare homepage, preparare preventivo..."></label>
       <label class="span2">Note<textarea id="projectNotes" rows="3"></textarea></label>
     </div>
 
-    <div class="public-box">
-      <label class="check"><input id="projectPublic" type="checkbox"><span><b>OUTPUT SITO</b> — questo progetto può alimentare la parte pubblica / portfolio</span></label>
-      <label>Testo pubblico breve<textarea id="projectPublicSummary" rows="2" placeholder="Una descrizione sintetica pubblicabile sul sito"></textarea></label>
-    </div>
-
-    <div class="subprojects-head">
-      <div><p class="eyebrow">SOTTOPROGETTI</p><h3>Workstreams / output</h3></div>
-      <button type="button" id="addSubprojectBtn" class="ghost">+ SOTTOPROGETTO</button>
-    </div>
+    <h3>Sottoprogetti / repository</h3>
+    <p class="hint">Ogni sottoprogetto è un repo operativo: contiene i task di quel lavoro specifico.</p>
     <div id="subprojectEditor" class="subproject-editor"></div>
+    <button type="button" id="addSubprojectBtn" class="ghost">+ AGGIUNGI REPO</button>
 
-    <div class="dialog-actions">
-      <button type="button" id="deleteProjectBtn" class="danger-btn">ELIMINA</button>
-      <button type="button" id="saveProjectBtn" class="primary">SALVA PROGETTO</button>
-    </div>
+    <div class="dialog-actions"><button type="button" id="deleteProjectBtn" class="danger-btn">ELIMINA</button><button type="button" id="saveProjectBtn" class="primary">SALVA PROGETTO</button></div>
+  </form>
+</dialog>
+
+<dialog id="repoDialog" class="project-dialog repo-dialog">
+  <form method="dialog">
+    <div class="dialog-head"><div><p class="eyebrow">REPOSITORY</p><h2 id="repoDialogTitle">Repo</h2></div><button value="cancel" class="ghost">×</button></div>
+    <div id="repoDialogMeta" class="repo-dialog-meta"></div>
+    <div id="repoTaskList" class="repo-task-list"></div>
   </form>
 </dialog>
 
