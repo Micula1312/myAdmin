@@ -10,7 +10,10 @@
 <main class="app">
   <header class="topbar">
     <div><p class="eyebrow">MYADMIN / LAVORO AUTONOMO OCCASIONALE</p><h1>Ricevute <span>2026</span></h1></div>
-    <button id="resetYear" class="ghost">Ripristina dati 2026</button>
+    <div class="top-actions">
+      <a class="ghost excel-link" href="/data/registro-2026.xlsx" target="_blank">APRI REGISTRO EXCEL</a>
+      <button id="resetYear" class="ghost">Ripristina dati 2026</button>
+    </div>
   </header>
 
   <section class="status-card four">
@@ -76,24 +79,24 @@
       <div id="warning" class="warning"></div>
       <div id="receiptPreview" class="receipt-mini"></div>
       <button id="printReceiptBtn" class="primary wide">STAMPA / SALVA PDF</button>
-      <p class="microcopy">Il browser apre la finestra di stampa. Usa il nome suggerito sopra e salva il PDF nella tua cartella locale <code>ricevute/2026</code>.</p>
+      <p class="microcopy">Il browser apre la finestra di stampa. Usa il nome suggerito sopra e salva il PDF in <code>ricevute/2026</code>. Avviando myAdmin con <code>python server.py</code>, la cartella viene letta automaticamente.</p>
     </aside>
   </section>
 
   <section class="pipeline">
     <section class="panel stage-panel">
       <div class="section-head"><div><p class="eyebrow">FASE 1</p><h2>In sospeso</h2></div><span class="drag-help">↕ trascina: ordine = numerazione</span></div>
-      <p class="archive-note">L'ordine aggiorna automaticamente numero, cumulato precedente e contributi.</p>
+      <p class="archive-note">L'ordine aggiorna automaticamente numero, cumulato precedente e contributi. Ogni modifica viene salvata anche in <code>data/registro-2026.xlsx</code>.</p>
       <div id="pendingList" class="pending-list"></div>
     </section>
 
     <section class="panel stage-panel">
       <div class="section-head"><div><p class="eyebrow">FASE 2</p><h2>Incassate</h2></div><strong id="totaleRegistro">€ 4.340,00</strong></div>
       <div class="local-pdf-bar">
-        <div><b>Archivio PDF locale</b><span id="pdfFolderStatus">cartella non collegata</span></div>
-        <label class="folder-button">COLLEGA CARTELLA 2026<input id="pdfFolderInput" type="file" accept="application/pdf,.pdf" webkitdirectory directory multiple hidden></label>
+        <div><b>Archivio PDF locale</b><span id="pdfFolderStatus">ricerca automatica in ricevute/2026…</span></div>
+        <label class="folder-button">COLLEGA CARTELLA MANUALMENTE<input id="pdfFolderInput" type="file" accept="application/pdf,.pdf" webkitdirectory directory multiple hidden></label>
       </div>
-      <p class="archive-note">I PDF restano sul computer. Il nome deve iniziare con il numero: <code>009-teorema.pdf</code>.</p>
+      <p class="archive-note">Con <code>server.py</code> non devi selezionare nulla: myAdmin legge la cartella locale e associa i PDF dal prefisso numerico, per esempio <code>009-teorema.pdf</code>.</p>
       <div id="paidList" class="paid-list"></div>
     </section>
   </section>
