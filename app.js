@@ -2,7 +2,7 @@ const $ = id => document.getElementById(id);
 const SEED_2026 = [
   {numero:1, clienteNome:"Spotlight", lordo:375, netto:300, pdf:"ricevute/2026/001-spotlight.pdf", seeded:true},
   {numero:2, clienteNome:"Scomodo", lordo:500, netto:400, pdf:"ricevute/2026/002-scomodo.pdf", seeded:true},
-  {numero:3, clienteNome:"Iuno", lordo:500, netto:400, pdf:"ricevute/2026/003-iuno.pdf", seeded:true},
+  {numero:3, clienteNome:"Iuno", lordo:325, netto:260, pdf:"ricevute/2026/003-iuno.pdf", seeded:true},
   {numero:4, clienteNome:"Fondaz. Pastificio", lordo:1440, netto:1152, pdf:"ricevute/2026/004-pastificio.pdf", seeded:true},
   {numero:6, clienteNome:"Teorema 1", lordo:500, netto:400, seeded:true},
   {numero:7, clienteNome:"Flyer", lordo:200, netto:160, pdf:"ricevute/2026/007-flyer.pdf", seeded:true},
@@ -29,7 +29,13 @@ function calc(){
 }
 function saveProfile(){const d={};["mioNome","mioCf","mioIndirizzo","iban"].forEach(k=>d[k]=$(k).value);localStorage.setItem("myadmin-profile",JSON.stringify(d))}
 function loadProfile(){const d=JSON.parse(localStorage.getItem("myadmin-profile")||"{}");Object.entries(d).forEach(([k,v])=>{if($(k))$(k).value=v})}
-function history(){const saved=JSON.parse(localStorage.getItem("myadmin-ricevute-2026")||"null");return saved||structuredClone(SEED_2026)}
+function history(){
+ const saved=JSON.parse(localStorage.getItem("myadmin-ricevute-2026")||"null");
+ if(!saved)return structuredClone(SEED_2026);
+ const iuno=saved.find(r=>r.seeded&&String(r.clienteNome).toLowerCase()==="iuno");
+ if(iuno&&num(iuno.lordo)===500){iuno.lordo=325;iuno.netto=260;localStorage.setItem("myadmin-ricevute-2026",JSON.stringify(saved));}
+ return saved;
+}
 function setHistory(h){localStorage.setItem("myadmin-ricevute-2026",JSON.stringify(h));renderHistory()}
 function renderHistory(){
  const h=history(),body=$("historyBody");body.innerHTML="";
