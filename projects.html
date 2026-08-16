@@ -23,17 +23,17 @@
 
   <section class="workspace-columns">
     <aside class="workspace-col projects-index-col">
-      <div class="col-head"><div><p class="eyebrow">INDEX</p><h2>Progetti</h2></div><span id="projectCount">0</span></div>
+      <div class="col-head"><div><p class="eyebrow">INDEX</p><h2>Progetti</h2></div><div class="col-head-actions"><span id="projectCount">0</span><button id="addProjectQuick" class="col-plus" title="Nuovo progetto">+</button></div></div>
       <div id="projectIndex" class="project-index scroll-stack"></div>
     </aside>
 
     <section class="workspace-col actions-col">
-      <div class="col-head"><div><p class="eyebrow">OGGI</p><h2>Prossime azioni</h2></div><span id="openTasks">0 task</span></div>
+      <div class="col-head"><div><p class="eyebrow">OGGI</p><h2>Prossime azioni</h2></div><div class="col-head-actions"><span id="openTasks">0 task</span><button id="addTaskQuick" class="col-plus" title="Nuovo task">+</button></div></div>
       <div id="nextActions" class="actions-list scroll-stack"></div>
     </section>
 
     <section class="workspace-col repos-col">
-      <div class="col-head"><div><p class="eyebrow">ACTIVE REPOSITORIES</p><h2>Sottoprogetti / repo</h2></div><span id="repoCount">0</span></div>
+      <div class="col-head"><div><p class="eyebrow">ACTIVE REPOSITORIES</p><h2>Sottoprogetti / repo</h2></div><div class="col-head-actions"><span id="repoCount">0</span><button id="addRepoQuick" class="col-plus" title="Nuovo repo">+</button></div></div>
       <div id="repoIndex" class="repo-stack scroll-stack"></div>
     </section>
   </section>
@@ -68,7 +68,31 @@
     <div id="repoTaskList" class="repo-task-list"></div>
   </form>
 </dialog>
+
+<dialog id="quickRepoDialog" class="quick-dialog">
+  <form method="dialog">
+    <div class="dialog-head"><div><p class="eyebrow">NEW REPOSITORY</p><h2>Nuovo repo</h2></div><button value="cancel" class="ghost">×</button></div>
+    <label>Dentro il progetto<select id="quickRepoProject"></select></label>
+    <label>Nome repo / sottoprogetto<input id="quickRepoName" placeholder="Es. Nuovo sito"></label>
+    <div class="grid two"><label>Stato<select id="quickRepoStatus"><option value="active">Attivo</option><option value="paused">In pausa</option></select></label><label>GitHub URL<input id="quickRepoUrl" placeholder="https://github.com/..."></label></div>
+    <label>Path locale<input id="quickRepoPath" placeholder="C:/Users/.../repository"></label>
+    <div class="dialog-actions"><span></span><button type="button" id="quickRepoSave" class="primary">CREA REPO</button></div>
+  </form>
+</dialog>
+
+<dialog id="quickTaskDialog" class="quick-dialog">
+  <form method="dialog">
+    <div class="dialog-head"><div><p class="eyebrow">NEW TASK</p><h2>Nuovo task</h2></div><button value="cancel" class="ghost">×</button></div>
+    <label>Progetto<select id="quickTaskProject"></select></label>
+    <label>Repo / sottoprogetto<select id="quickTaskRepo"></select></label>
+    <label>Task<input id="quickTaskText" placeholder="Cosa devo fare?"></label>
+    <label>Stato<select id="quickTaskStatus"><option value="todo">Da fare</option><option value="doing">In corso</option><option value="blocked">Bloccato</option><option value="done">Fatto</option></select></label>
+    <div class="dialog-actions"><span></span><button type="button" id="quickTaskSave" class="primary">AGGIUNGI TASK</button></div>
+  </form>
+</dialog>
+
 <script src="projects.js"></script>
 <script src="repo-inline.js"></script>
+<script src="quick-add.js"></script>
 </body>
 </html>
