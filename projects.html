@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>myAdmin — Progetti</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="projects.css">
+</head>
+<body>
+<main class="app projects-app">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">MYADMIN / GESTIONE PROGETTI</p>
+      <h1>Progetti <span>2026</span></h1>
+    </div>
+    <div class="top-actions">
+      <a class="ghost nav-link" href="/">RICEVUTE</a>
+      <button id="newProjectBtn" class="primary">+ NUOVO PROGETTO</button>
+    </div>
+  </header>
+
+  <section class="project-summary">
+    <article><small>Attivi ora</small><strong id="activeCount">0</strong></article>
+    <article><small>In pausa / intermittenti</small><strong id="pausedCount">0</strong></article>
+    <article><small>Task aperti</small><strong id="openTasks">0</strong></article>
+    <article><small>Valore progetti</small><strong id="projectValue">€ 0,00</strong></article>
+  </section>
+
+  <section class="panel quick-task-panel">
+    <div class="section-head"><div><p class="eyebrow">OGGI</p><h2>Prossime azioni</h2></div></div>
+    <div id="nextActions" class="next-actions"></div>
+  </section>
+
+  <section class="board" id="projectBoard">
+    <div class="board-column" data-status="idea"><div class="board-title"><span>IDEA / DA ATTIVARE</span><b id="count-idea">0</b></div><div class="project-list"></div></div>
+    <div class="board-column" data-status="active"><div class="board-title"><span>ATTIVI</span><b id="count-active">0</b></div><div class="project-list"></div></div>
+    <div class="board-column" data-status="paused"><div class="board-title"><span>IN PAUSA</span><b id="count-paused">0</b></div><div class="project-list"></div></div>
+    <div class="board-column" data-status="done"><div class="board-title"><span>CHIUSI</span><b id="count-done">0</b></div><div class="project-list"></div></div>
+  </section>
+</main>
+
+<dialog id="projectDialog" class="project-dialog">
+  <form method="dialog" id="projectForm">
+    <div class="dialog-head"><div><p class="eyebrow">PROGETTO</p><h2 id="dialogTitle">Nuovo progetto</h2></div><button value="cancel" class="ghost">×</button></div>
+    <input id="projectId" type="hidden">
+    <div class="grid two">
+      <label>Nome progetto<input id="projectName" required></label>
+      <label>Cliente / organizzazione<input id="projectClient"></label>
+      <label>Stato<select id="projectStatus"><option value="idea">Idea / da attivare</option><option value="active">Attivo</option><option value="paused">In pausa / intermittente</option><option value="done">Chiuso</option></select></label>
+      <label>Categoria<select id="projectCategory"><option>Sito web</option><option>Design</option><option>Arte / ricerca</option><option>Docenza</option><option>Produzione</option><option>Altro</option></select></label>
+      <label>Valore / budget (€)<input id="projectBudget" inputmode="decimal" placeholder="0,00"></label>
+      <label>Deadline<input id="projectDeadline" type="date"></label>
+      <label class="span2">Prossima azione<input id="projectNextAction" placeholder="Es. fare homepage, scrivere a Gaia, preparare preventivo..."></label>
+      <label class="span2">Note<textarea id="projectNotes" rows="4"></textarea></label>
+    </div>
+    <h3>Task</h3>
+    <div id="taskEditor" class="task-editor"></div>
+    <button type="button" id="addTaskBtn" class="ghost">+ AGGIUNGI TASK</button>
+    <div class="dialog-actions"><button type="button" id="deleteProjectBtn" class="danger-btn">ELIMINA</button><button type="button" id="saveProjectBtn" class="primary">SALVA PROGETTO</button></div>
+  </form>
+</dialog>
+
+<script src="projects.js"></script>
+</body>
+</html>
