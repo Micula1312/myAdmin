@@ -7,100 +7,100 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="app">
-    <header class="topbar">
-      <div><p class="eyebrow">MYADMIN / LAVORO AUTONOMO OCCASIONALE</p><h1>Ricevute <span>2026</span></h1></div>
-      <button id="resetYear" class="ghost">Ripristina dati 2026</button>
-    </header>
+<main class="app">
+  <header class="topbar">
+    <div><p class="eyebrow">MYADMIN / LAVORO AUTONOMO OCCASIONALE</p><h1>Ricevute <span>2026</span></h1></div>
+    <button id="resetYear" class="ghost">Ripristina dati 2026</button>
+  </header>
 
-    <section class="status-card four">
-      <div><small>Incassato</small><strong id="statusPaid">€ 4.340,00</strong></div>
-      <div><small>Da incassare</small><strong id="statusPending">€ 1.460,00</strong></div>
-      <div><small>Previsto</small><strong id="statusProjected">€ 5.800,00</strong></div>
-      <div><small>Franchigia residua</small><strong id="statusResiduo">€ 660,00</strong></div>
-      <div class="progress"><i id="progressBar"></i></div>
+  <section class="status-card four">
+    <div><small>Incassato</small><strong id="statusPaid">€ 4.340,00</strong></div>
+    <div><small>Da incassare</small><strong id="statusPending">€ 1.460,00</strong></div>
+    <div><small>Previsto</small><strong id="statusProjected">€ 5.800,00</strong></div>
+    <div><small>Franchigia residua</small><strong id="statusResiduo">€ 660,00</strong></div>
+    <div class="progress"><i id="progressBar"></i></div>
+  </section>
+
+  <section class="workspace">
+    <section class="panel form-panel">
+      <div class="section-head"><div><p class="eyebrow">FASE 0</p><h2>Crea / modifica ricevuta</h2></div></div>
+      <div class="grid two">
+        <label>Numero ricevuta<input id="numero" type="number" readonly></label>
+        <label>Data<input id="data" type="date"></label>
+      </div>
+      <label>Descrizione prestazione<textarea id="descrizione" rows="5" placeholder="Docenza / progettazione / sviluppo web / ..."></textarea></label>
+      <div class="grid two">
+        <label>Lordo cumulato precedente (€)<input id="cumulato" readonly></label>
+        <label>Compenso lordo (€)<input id="lordo" inputmode="decimal" placeholder="0,00"></label>
+      </div>
+
+      <h3>Prestatrice</h3>
+      <div class="grid two">
+        <label>Nome e cognome<input id="mioNome" value="Micol Gelsi"></label>
+        <label>Codice fiscale<input id="mioCf" value="GLSMCL94E50A944K"></label>
+        <label class="span2">Indirizzo<input id="mioIndirizzo" placeholder="Via / Piazza, n., CAP, città"></label>
+        <label>IBAN<input id="iban" placeholder="IT..."></label>
+      </div>
+
+      <h3>Committente</h3>
+      <div class="grid two">
+        <label>Ragione sociale / Nome<input id="clienteNome" placeholder="Committente"></label>
+        <label>CF / P.IVA<input id="clienteCf" placeholder="Codice fiscale o Partita IVA"></label>
+        <label class="span2">Indirizzo<input id="clienteIndirizzo" placeholder="Sede / indirizzo"></label>
+      </div>
+
+      <div class="switches">
+        <label class="check"><input id="sostituto" type="checkbox" checked><span>Committente sostituto d'imposta → ritenuta 20%</span></label>
+        <label class="check"><input id="altraCopertura" type="checkbox"><span>Pensionata / altra previdenza obbligatoria → aliquota INPS 24%</span></label>
+      </div>
+      <details><summary>Impostazioni avanzate</summary><div class="grid two advanced">
+        <label>Franchigia annua (€)<input id="franchigia" value="5000"></label>
+        <label>Aliquota INPS ordinaria (%)<input id="aliquota" value="33,72"></label>
+        <label>Quota lavoratrice<select id="quotaLavoratore"><option value="0.3333333333">1/3</option></select></label>
+        <label>Ritenuta (%)<input id="ritenutaPerc" value="20"></label>
+      </div></details>
+
+      <div class="form-actions">
+        <button id="savePendingBtn" class="secondary">AGGIUNGI IN SOSPESO</button>
+        <button id="clearFormBtn" class="ghost">NUOVA VUOTA</button>
+      </div>
     </section>
 
-    <section class="panel pending-panel">
-      <div class="historyHead">
-        <div><p class="eyebrow">IN SOSPESO</p><h2>Ordine delle prossime ricevute</h2></div>
-        <span class="drag-help">↕ trascina per cambiare ordine e numerazione</span>
+    <aside class="panel preview-panel">
+      <div class="section-head"><div><p class="eyebrow">PREVIEW LIVE</p><h2>Ricevuta</h2></div><span id="suggestedFilename" class="filename"></span></div>
+      <div class="calc-strip">
+        <span>Lordo <b id="rLordo">€ 0,00</b></span>
+        <span>Imponibile INPS <b id="rImponibile">€ 0,00</b></span>
+        <span>Netto <b id="rNetto">€ 0,00</b></span>
       </div>
-      <p class="archive-note">La numerazione parte dall’ultima ricevuta confermata. Cambiando l’ordine, myAdmin ricalcola numero, cumulato precedente e quota eventualmente soggetta a INPS.</p>
+      <div id="warning" class="warning"></div>
+      <div id="receiptPreview" class="receipt-mini"></div>
+      <button id="printReceiptBtn" class="primary wide">STAMPA / SALVA PDF</button>
+      <p class="microcopy">Il browser apre la finestra di stampa. Usa il nome suggerito sopra e salva il PDF nella tua cartella locale <code>ricevute/2026</code>.</p>
+    </aside>
+  </section>
+
+  <section class="pipeline">
+    <section class="panel stage-panel">
+      <div class="section-head"><div><p class="eyebrow">FASE 1</p><h2>In sospeso</h2></div><span class="drag-help">↕ trascina: ordine = numerazione</span></div>
+      <p class="archive-note">L'ordine aggiorna automaticamente numero, cumulato precedente e contributi.</p>
       <div id="pendingList" class="pending-list"></div>
     </section>
 
-    <div class="layout">
-      <section class="panel">
-        <h2>Compila una ricevuta</h2>
-        <div class="grid two">
-          <label>Numero ricevuta<input id="numero" type="number" min="1" value="9" readonly></label>
-          <label>Data<input id="data" type="date"></label>
-        </div>
-        <label>Descrizione prestazione<textarea id="descrizione" rows="4" placeholder="Docenza / progettazione / sviluppo web / ..."></textarea></label>
-        <div class="grid two">
-          <label>Lordo cumulato precedente (€)<input id="cumulato" inputmode="decimal" value="4340" readonly></label>
-          <label>Compenso lordo nuova ricevuta (€)<input id="lordo" inputmode="decimal" placeholder="0,00"></label>
-        </div>
-
-        <h3>Dati prestatore</h3>
-        <div class="grid two">
-          <label>Nome e cognome<input id="mioNome" value="Micol Gelsi"></label>
-          <label>Codice fiscale<input id="mioCf" value="GLSMCL94E50A944K"></label>
-          <label class="span2">Indirizzo<input id="mioIndirizzo" placeholder="Via / Piazza, n., CAP, città"></label>
-          <label>IBAN (facoltativo)<input id="iban" placeholder="IT..."></label>
-        </div>
-
-        <h3>Committente</h3>
-        <div class="grid two">
-          <label>Ragione sociale / Nome<input id="clienteNome" placeholder="Committente"></label>
-          <label>CF / P.IVA<input id="clienteCf" placeholder="Codice fiscale o Partita IVA"></label>
-          <label class="span2">Indirizzo<input id="clienteIndirizzo" placeholder="Sede / indirizzo"></label>
-        </div>
-
-        <div class="switches">
-          <label class="check"><input id="sostituto" type="checkbox" checked><span>Committente sostituto d'imposta → ritenuta 20%</span></label>
-          <label class="check"><input id="altraCopertura" type="checkbox"><span>Pensionata / altra previdenza obbligatoria → aliquota INPS 24%</span></label>
-        </div>
-        <details><summary>Impostazioni avanzate</summary><div class="grid two advanced">
-          <label>Franchigia annua (€)<input id="franchigia" value="5000"></label>
-          <label>Aliquota INPS ordinaria (%)<input id="aliquota" value="33,72"></label>
-          <label>Quota lavoratrice<select id="quotaLavoratore"><option value="0.3333333333">1/3</option></select></label>
-          <label>Ritenuta (%)<input id="ritenutaPerc" value="20"></label>
-        </div><p class="hint">Parametri modificabili: verifica sempre l'aliquota applicabile al tuo caso prima dell'emissione definitiva.</p></details>
-      </section>
-
-      <aside class="panel calculator">
-        <h2>Calcolo</h2>
-        <div class="result"><span>Compenso lordo</span><b id="rLordo">€ 0,00</b></div>
-        <div class="result"><span>Quota in franchigia</span><b id="rFranchigia">€ 0,00</b></div>
-        <div class="result hot"><span>Imponibile INPS</span><b id="rImponibile">€ 0,00</b></div>
-        <div class="result"><span>INPS totale</span><b id="rInpsTot">€ 0,00</b></div>
-        <div class="result"><span>INPS a tuo carico (1/3)</span><b id="rInpsMe">€ 0,00</b></div>
-        <div class="result"><span>INPS committente (2/3)</span><b id="rInpsCliente">€ 0,00</b></div>
-        <div class="result"><span>Ritenuta d'acconto</span><b id="rRitenuta">€ 0,00</b></div>
-        <div class="result total"><span>NETTO DA PAGARE</span><b id="rNetto">€ 0,00</b></div>
-        <div id="warning" class="warning"></div>
-        <button id="previewBtn" class="primary">Genera / stampa ricevuta</button>
-        <button id="savePendingBtn" class="secondary">Aggiungi in sospeso</button>
-      </aside>
-    </div>
-
-    <section class="panel history">
-      <div class="historyHead"><div><p class="eyebrow">INCASSATE</p><h2>Registro 2026</h2></div><strong id="totaleRegistro">Totale incassato: € 4.340,00</strong></div>
+    <section class="panel stage-panel">
+      <div class="section-head"><div><p class="eyebrow">FASE 2</p><h2>Incassate</h2></div><strong id="totaleRegistro">€ 4.340,00</strong></div>
       <div class="local-pdf-bar">
-        <div><b>PDF locali</b><span id="pdfFolderStatus">cartella non collegata</span></div>
-        <label class="folder-button">COLLEGA CARTELLA PDF
-          <input id="pdfFolderInput" type="file" accept="application/pdf,.pdf" webkitdirectory directory multiple hidden>
-        </label>
+        <div><b>Archivio PDF locale</b><span id="pdfFolderStatus">cartella non collegata</span></div>
+        <label class="folder-button">COLLEGA CARTELLA 2026<input id="pdfFolderInput" type="file" accept="application/pdf,.pdf" webkitdirectory directory multiple hidden></label>
       </div>
-      <p class="archive-note">I PDF restano solo sul tuo computer. Seleziona la cartella <code>ricevute/2026/</code>: myAdmin associa automaticamente ogni file che inizia con il numero della ricevuta.</p>
-      <table id="historyTable"><thead><tr><th>N.</th><th>Committente</th><th>Tipo</th><th>Lordo</th><th>Netto</th><th>PDF</th><th>Ricevuta</th></tr></thead><tbody id="historyBody"></tbody></table>
+      <p class="archive-note">I PDF restano sul computer. Il nome deve iniziare con il numero: <code>009-teorema.pdf</code>.</p>
+      <div id="paidList" class="paid-list"></div>
     </section>
-  </main>
+  </section>
+</main>
 
-  <section id="receipt" class="receipt" aria-hidden="true"><div class="receipt-actions no-print"><button id="closeReceipt">← Torna</button><button id="printReceipt" class="primary">Stampa / Salva PDF</button></div><article id="receiptPaper"></article></section>
-  <script src="app.js"></script>
-  <script src="pdf-local.js"></script>
+<section id="printView" class="print-view"><article id="printPaper"></article></section>
+<script src="app.js"></script>
+<script src="pdf-local.js"></script>
 </body>
 </html>
