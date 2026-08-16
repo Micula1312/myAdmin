@@ -1,4 +1,131 @@
 {
   "version": 1,
-  "thoughts": []
+  "thoughts": [
+    {
+      "id": "thought-20260816192723609348",
+      "text": "Il problema non è il caos, è che non ha ancora una buona interfaccia. La grafica viene dopo: prima devo capire la logica.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:23+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192725476800",
+      "text": "Se una cosa può stare in tre cartelle contemporaneamente probabilmente è organizzata bene. Potrei farlo più semplice, ma così mi annoio.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:25+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192726034577",
+      "text": "Se una cosa può stare in tre cartelle contemporaneamente probabilmente è organizzata bene. La grafica viene dopo: prima devo capire la logica.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:26+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192726233589",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. Forse ci serve una regia, non un altro menu.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:26+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192726416202",
+      "text": "Oggi faccio solo le cose che hanno davvero bisogno di esistere. Sì, ma deve rimanere vivo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:26+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192726598651",
+      "text": "Se una cosa può stare in tre cartelle contemporaneamente probabilmente è organizzata bene. La grafica viene dopo: prima devo capire la logica.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:26+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192726780823",
+      "text": "Prima lo faccio funzionare, poi capiamo che cosa abbiamo costruito. Lo mettiamo nel repo e poi vediamo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:26+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192727143706",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. Forse ci serve una regia, non un altro menu.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:27+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192727543194",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. Lo mettiamo nel repo e poi vediamo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:27+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192727734606",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. La grafica viene dopo: prima devo capire la logica.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:27+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192727941940",
+      "text": "Forse devo smettere di chiamarlo sito e iniziare a chiamarlo dispositivo. Comunque questa cosa potrebbe diventare un software.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:27+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192743862614",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. La grafica viene dopo: prima devo capire la logica.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:27:43+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192813452447",
+      "text": "Forse devo smettere di chiamarlo sito e iniziare a chiamarlo dispositivo. Forse ci serve una regia, non un altro menu.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:28:13+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816192814112406",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. Comunque questa cosa potrebbe diventare un software.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T19:28:14+02:00",
+      "verdict": null
+    }
+  ]
 }
