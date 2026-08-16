@@ -18,53 +18,57 @@
   }
 
   function applyPdfLinks() {
+    cleanupUrls();
+
     tableBody.querySelectorAll('tr').forEach(row => {
       const cells = row.querySelectorAll('td');
       if (cells.length < 6) return;
+
       const number = Number((cells[0].textContent || '').trim());
+      const pdfCell = cells[5];
+
       if (!Number.isFinite(number) || !pdfMap.has(number)) {
-        cells[5].innerHTML = '<span class="missing">—</span>';
+        pdfCell.innerHTML = '<span class="missing">—</span>';
         return;
       }
+
       const file = pdfMap.get(number);
       const url = URL.createObjectURL(file);
       objectUrls.push(url);
-      cells[5].innerHTML = `<a class="pdf-link" href="${url}" target="_blank" rel="noopener">APRI PDF ↗</a>`;
+      pdfCell.innerHTML = `<a class="pdf-link" href="${url}" target="_blank" rel="noopener">APRI PDF ↗</a>`;
     });
   }
 
   input.addEventListener('change', () => {
-    cleanupUrls();
     pdfMap = new Map();
-    const files = Array.from(input.files || []).filter(file => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'));
+
+    const files = Array.from(input.files || []).filter(file =>
+      file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    );
 
     files.forEach(file => {
       const number = receiptNumberFromFilename(file.name);
-      if (number !== null && !pdfMap.has(number)) pdfMap.set(number, file);
+      if (number !== null && !pdfMap.has(number)) {
+        pdfMap.set(number, file);
+      }
     });
 
     status.textContent = `${pdfMap.size} PDF collegati localmente`;
     applyPdfLinks();
   });
 
+  /*
+   * Osserviamo SOLO l'aggiunta/rimozione delle righe direttamente nel tbody.
+   * Non usiamo subtree:true: applyPdfLinks() modifica le celle e con subtree
+   * attivo il MutationObserver si richiamerebbe all'infinito, bloccando la pagina.
+   */
   const observer = new MutationObserver(() => {
-    if (!pdfMap.size) {
-      tableBody.querySelectorAll('tr').forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length >= 6) cells[5].innerHTML = '<span class="missing">—</span>';
-      });
-      return;
-    }
-    cleanupUrls();
     applyPdfLinks();
   });
-  observer.observe(tableBody, { childList: true, subtree: true });
+  observer.observe(tableBody, { childList: true, subtree: false });
 
-  // Nasconde eventuali link hard-coded nel dataset: i PDF devono restare locali.
-  requestAnimationFrame(() => {
-    tableBody.querySelectorAll('tr').forEach(row => {
-      const cells = row.querySelectorAll('td');
-      if (cells.length >= 6) cells[5].innerHTML = '<span class="missing">—</span>';
-    });
-  });
+  // I PDF sono esclusivamente locali: rimuove eventuali link presenti nei dati iniziali.
+  requestAnimationFrame(applyPdfLinks);
+
+  window.addEventListener('beforeunload', cleanupUrls);
 })();
