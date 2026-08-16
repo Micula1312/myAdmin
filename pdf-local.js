@@ -1,74 +1,38 @@
 (() => {
   const input = document.getElementById('pdfFolderInput');
   const status = document.getElementById('pdfFolderStatus');
-  const tableBody = document.getElementById('historyBody');
-  if (!input || !status || !tableBody) return;
+  const list = document.getElementById('paidList');
+  if (!input || !status || !list) return;
 
   let pdfMap = new Map();
   let objectUrls = [];
 
-  function cleanupUrls() {
-    objectUrls.forEach(url => URL.revokeObjectURL(url));
-    objectUrls = [];
-  }
+  function cleanupUrls(){ objectUrls.forEach(url => URL.revokeObjectURL(url)); objectUrls=[]; }
+  function numberFromFilename(name){ const m=String(name).match(/^0*(\d{1,4})(?=[\s._-]|\.pdf$)/i); return m?Number(m[1]):null; }
 
-  function receiptNumberFromFilename(name) {
-    const match = String(name).match(/^0*(\d{1,4})(?=[\s._-]|\.pdf$)/i);
-    return match ? Number(match[1]) : null;
-  }
-
-  function applyPdfLinks() {
+  function apply(){
     cleanupUrls();
-
-    tableBody.querySelectorAll('tr').forEach(row => {
-      const cells = row.querySelectorAll('td');
-      if (cells.length < 6) return;
-
-      const number = Number((cells[0].textContent || '').trim());
-      const pdfCell = cells[5];
-
-      if (!Number.isFinite(number) || !pdfMap.has(number)) {
-        pdfCell.innerHTML = '<span class="missing">—</span>';
+    list.querySelectorAll('.paid-card').forEach(card => {
+      const slot = card.querySelector('.pdf-slot');
+      if(!slot) return;
+      const number = Number(card.dataset.receiptNumber);
+      if(!Number.isFinite(number) || !pdfMap.has(number)){
+        slot.outerHTML='<span class="pdf-slot missing">PDF —</span>';
         return;
       }
-
-      const file = pdfMap.get(number);
-      const url = URL.createObjectURL(file);
-      objectUrls.push(url);
-      pdfCell.innerHTML = `<a class="pdf-link" href="${url}" target="_blank" rel="noopener">APRI PDF ↗</a>`;
+      const file=pdfMap.get(number),url=URL.createObjectURL(file);objectUrls.push(url);
+      slot.outerHTML=`<a class="pdf-slot pdf-link" href="${url}" target="_blank" rel="noopener">APRI PDF ↗</a>`;
     });
   }
 
-  input.addEventListener('change', () => {
-    pdfMap = new Map();
-
-    const files = Array.from(input.files || []).filter(file =>
-      file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
-    );
-
-    files.forEach(file => {
-      const number = receiptNumberFromFilename(file.name);
-      if (number !== null && !pdfMap.has(number)) {
-        pdfMap.set(number, file);
-      }
+  input.addEventListener('change',()=>{
+    pdfMap=new Map();
+    Array.from(input.files||[]).filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf')).forEach(file=>{
+      const n=numberFromFilename(file.name);if(n!==null&&!pdfMap.has(n))pdfMap.set(n,file);
     });
-
-    status.textContent = `${pdfMap.size} PDF collegati localmente`;
-    applyPdfLinks();
+    status.textContent=`${pdfMap.size} PDF collegati localmente`;
+    apply();
   });
 
-  /*
-   * Osserviamo SOLO l'aggiunta/rimozione delle righe direttamente nel tbody.
-   * Non usiamo subtree:true: applyPdfLinks() modifica le celle e con subtree
-   * attivo il MutationObserver si richiamerebbe all'infinito, bloccando la pagina.
-   */
-  const observer = new MutationObserver(() => {
-    applyPdfLinks();
-  });
-  observer.observe(tableBody, { childList: true, subtree: false });
-
-  // I PDF sono esclusivamente locali: rimuove eventuali link presenti nei dati iniziali.
-  requestAnimationFrame(applyPdfLinks);
-
-  window.addEventListener('beforeunload', cleanupUrls);
+  document.addEventListener('myadmin:paid-rendered',()=>{ if(pdfMap.size) apply(); });
 })();
