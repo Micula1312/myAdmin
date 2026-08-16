@@ -1,65 +1,100 @@
-// Inline editor for repository/subproject cards.
-// Loaded after projects.js so this renderRepos() replaces the read-only renderer.
+// Repository cards stay compact; the pencil opens the single-repo editor.
+// Loaded after projects.js so this renderer replaces the base repository renderer.
 
 function renderRepos(){
   let repos=repoRecords().filter(r=>r.sub.status!=='done');
   repos=repos.filter(r=>scopedProjects().some(p=>p.id===r.project.id));
   repos.sort((a,b)=>({active:0,paused:1}[a.sub.status]??9)-({active:0,paused:1}[b.sub.status]??9)||a.project.name.localeCompare(b.project.name));
 
-  $('repoIndex').innerHTML=repos.length?repos.map(({project:p,sub:s,open})=>{
-    const tasks=(s.tasks||[]).map(t=>`<div class="inline-task-row" data-task="${t.id}"><select class="inline-task-status"><option value="todo">○</option><option value="doing">◐</option><option value="blocked">!</option><option value="done">✓</option></select><input class="inline-task-text" value="${esc(t.text)}"><button type="button" class="inline-task-delete">×</button></div>`).join('');
-    return `<article class="repo-card ${s.status}" data-project="${p.id}" data-sub="${s.id}">
-      <div class="repo-view">
-        <div class="repo-card-top"><span class="repo-path">${CATEGORY_LABELS[p.category]} / ${esc(p.name)}</span><div class="repo-card-tools"><span class="repo-state ${s.status}">${SUB_STATUS_LABELS[s.status]}</span><button type="button" class="repo-inline-edit" title="Modifica repo">✎</button></div></div>
-        <h3>${esc(s.name)}</h3>
-        <div class="repo-task-preview">${(s.tasks||[]).slice(0,4).map(t=>`<div class="repo-task-preview-row ${t.status}"><i></i><span>${esc(t.text)}</span></div>`).join('')||'<span class="empty-board">Nessun task</span>'}</div>
-        <div class="task-progress"><i style="width:${taskPctSub(s)}%"></i></div>
-        <div class="repo-card-foot"><span>${open} aperti / ${(s.tasks||[]).length}</span><span>${taskPctSub(s)}%${s.repoUrl?' · GIT':''}${s.localPath?' · LOCAL':''}</span></div>
+  $('repoIndex').innerHTML=repos.length?repos.map(({project:p,sub:s,open})=>`
+    <article class="repo-card ${s.status}" data-project="${p.id}" data-sub="${s.id}">
+      <div class="repo-card-top">
+        <span class="repo-path">${CATEGORY_LABELS[p.category]} / ${esc(p.name)}</span>
+        <div class="repo-card-tools">
+          <span class="repo-state ${s.status}">${SUB_STATUS_LABELS[s.status]}</span>
+          <button type="button" class="repo-inline-edit" title="Modifica repo" aria-label="Modifica ${esc(s.name)}">✎</button>
+        </div>
       </div>
-      <div class="repo-inline-editor" hidden>
-        <div class="inline-repo-top"><input class="inline-repo-name" value="${esc(s.name)}"><select class="inline-repo-status"><option value="active">Attivo</option><option value="paused">In pausa</option><option value="done">Chiuso</option></select></div>
-        <div class="inline-repo-links"><input class="inline-repo-url" value="${esc(s.repoUrl||'')}" placeholder="GitHub URL"><input class="inline-repo-path" value="${esc(s.localPath||'')}" placeholder="Path locale"></div>
-        <div class="inline-task-list">${tasks}</div>
-        <button type="button" class="inline-add-task">+ TASK</button>
-        <div class="inline-repo-actions"><button type="button" class="inline-delete-repo">ELIMINA REPO</button><span></span><button type="button" class="inline-cancel-repo">ANNULLA</button><button type="button" class="inline-save-repo">SALVA</button></div>
-      </div>
-    </article>`;
-  }).join(''):'<div class="empty-board">Nessun repo attivo in questa selezione.</div>';
+      <h3>${esc(s.name)}</h3>
+      <div class="repo-task-preview">${(s.tasks||[]).slice(0,4).map(t=>`<div class="repo-task-preview-row ${t.status}"><i></i><span>${esc(t.text)}</span></div>`).join('')||'<span class="empty-board">Nessun task</span>'}</div>
+      <div class="task-progress"><i style="width:${taskPctSub(s)}%"></i></div>
+      <div class="repo-card-foot"><span>${open} aperti / ${(s.tasks||[]).length}</span><span>${taskPctSub(s)}%${s.repoUrl?' · GIT':''}${s.localPath?' · LOCAL':''}</span></div>
+    </article>`).join(''):'<div class="empty-board">Nessun repo attivo in questa selezione.</div>';
 
   const root=$('repoIndex');
   root.querySelectorAll('.repo-card').forEach(card=>{
-    const view=card.querySelector('.repo-view'),editor=card.querySelector('.repo-inline-editor');
-    const status=card.querySelector('.inline-repo-status');
-    const p=projectById(card.dataset.project),s=(p?.subprojects||[]).find(x=>x.id===card.dataset.sub);
-    if(status&&s)status.value=s.status;
-
-    view.onclick=e=>{
-      if(e.target.closest('.repo-inline-edit')){e.stopPropagation();view.hidden=true;editor.hidden=false;card.classList.add('editing');return;}
+    card.onclick=e=>{
+      if(e.target.closest('.repo-inline-edit')) return;
       openRepo(card.dataset.project,card.dataset.sub);
     };
-    card.querySelector('.inline-cancel-repo').onclick=()=>renderRepos();
-    card.querySelector('.inline-add-task').onclick=()=>{
-      const list=card.querySelector('.inline-task-list');
-      const row=document.createElement('div');row.className='inline-task-row';row.dataset.task=uid('t');
-      row.innerHTML='<select class="inline-task-status"><option value="todo">○</option><option value="doing">◐</option><option value="blocked">!</option><option value="done">✓</option></select><input class="inline-task-text" placeholder="Nuovo task"><button type="button" class="inline-task-delete">×</button>';
-      list.appendChild(row);bindInlineTaskDelete(row);
-      row.querySelector('input').focus();
-    };
-    card.querySelectorAll('.inline-task-row').forEach(bindInlineTaskDelete);
-    card.querySelector('.inline-save-repo').onclick=async()=>saveInlineRepo(card);
-    card.querySelector('.inline-delete-repo').onclick=async()=>{
-      if(!confirm('Eliminare questo repo e tutti i suoi task?'))return;
-      const project=projectById(card.dataset.project);project.subprojects=project.subprojects.filter(x=>x.id!==card.dataset.sub);await saveState();
+    card.querySelector('.repo-inline-edit').onclick=e=>{
+      e.stopPropagation();
+      openRepoEditor(card.dataset.project,card.dataset.sub);
     };
   });
 }
 
-function bindInlineTaskDelete(row){const b=row.querySelector('.inline-task-delete');if(b)b.onclick=()=>row.remove();}
+function openRepoEditor(projectId,subId){
+  const p=projectById(projectId),s=(p?.subprojects||[]).find(x=>x.id===subId);if(!p||!s)return;
+  const dialog=$('repoDialog');
+  $('repoDialogTitle').textContent=s.name;
+  $('repoDialogMeta').innerHTML=`
+    <span class="category-pill">${CATEGORY_LABELS[p.category]}</span>
+    <b>${esc(p.name)}</b>
+    <span class="repo-edit-caption">MODIFICA REPOSITORY</span>`;
 
-async function saveInlineRepo(card){
-  const p=projectById(card.dataset.project),s=(p?.subprojects||[]).find(x=>x.id===card.dataset.sub);if(!p||!s)return;
-  const name=card.querySelector('.inline-repo-name').value.trim();if(!name)return alert('Inserisci il nome del repo.');
-  s.name=name;s.status=card.querySelector('.inline-repo-status').value;s.repoUrl=card.querySelector('.inline-repo-url').value.trim();s.localPath=card.querySelector('.inline-repo-path').value.trim();
-  s.tasks=[...card.querySelectorAll('.inline-task-row')].map(r=>({id:r.dataset.task||uid('t'),status:r.querySelector('.inline-task-status').value,text:r.querySelector('.inline-task-text').value.trim()})).filter(t=>t.text);
-  await saveState();
+  $('repoTaskList').innerHTML=`
+    <section class="repo-sheet-editor" data-project="${p.id}" data-sub="${s.id}">
+      <div class="repo-sheet-grid">
+        <label>Nome repo<input id="sheetRepoName" value="${esc(s.name)}"></label>
+        <label>Stato<select id="sheetRepoStatus"><option value="active">Attivo</option><option value="paused">In pausa</option><option value="done">Chiuso</option></select></label>
+        <label>GitHub URL<input id="sheetRepoUrl" value="${esc(s.repoUrl||'')}" placeholder="https://github.com/..."></label>
+        <label>Path locale<input id="sheetRepoPath" value="${esc(s.localPath||'')}" placeholder="C:/Users/.../repository"></label>
+      </div>
+      <div class="repo-sheet-section-head"><div><p class="eyebrow">TASK</p><h3>Attività del repo</h3></div><button type="button" id="sheetAddTask" class="ghost">+ TASK</button></div>
+      <div id="sheetTaskList" class="sheet-task-list"></div>
+      <div class="repo-sheet-actions">
+        <button type="button" id="sheetDeleteRepo" class="danger-btn">ELIMINA REPO</button>
+        <div><button type="button" id="sheetCancelRepo" class="ghost">ANNULLA</button><button type="button" id="sheetSaveRepo" class="primary">SALVA</button></div>
+      </div>
+    </section>`;
+  $('sheetRepoStatus').value=s.status||'active';
+  (s.tasks||[]).forEach(t=>addSheetTask(t));
+  $('sheetAddTask').onclick=()=>addSheetTask();
+  $('sheetCancelRepo').onclick=()=>dialog.close();
+  $('sheetSaveRepo').onclick=async()=>{
+    const name=$('sheetRepoName').value.trim();if(!name)return alert('Inserisci il nome del repo.');
+    s.name=name;
+    s.status=$('sheetRepoStatus').value;
+    s.repoUrl=$('sheetRepoUrl').value.trim();
+    s.localPath=$('sheetRepoPath').value.trim();
+    s.tasks=[...document.querySelectorAll('#sheetTaskList .sheet-task-row')].map(row=>({
+      id:row.dataset.task||uid('t'),
+      status:row.querySelector('.sheet-task-status').value,
+      text:row.querySelector('.sheet-task-text').value.trim()
+    })).filter(t=>t.text);
+    dialog.close();
+    await saveState();
+  };
+  $('sheetDeleteRepo').onclick=async()=>{
+    if(!confirm('Eliminare questo repo e tutti i suoi task?'))return;
+    p.subprojects=p.subprojects.filter(x=>x.id!==s.id);
+    dialog.close();
+    await saveState();
+  };
+  dialog.showModal();
+  setTimeout(()=>$('sheetRepoName')?.focus(),50);
+}
+
+function addSheetTask(t={id:uid('t'),text:'',status:'todo'}){
+  const list=$('sheetTaskList');
+  const row=document.createElement('div');row.className='sheet-task-row';row.dataset.task=t.id||uid('t');
+  row.innerHTML=`
+    <select class="sheet-task-status"><option value="todo">○ Da fare</option><option value="doing">◐ In corso</option><option value="blocked">! Bloccato</option><option value="done">✓ Fatto</option></select>
+    <input class="sheet-task-text" value="${esc(t.text||'')}" placeholder="Cosa devo fare?">
+    <button type="button" class="sheet-task-delete">×</button>`;
+  row.querySelector('.sheet-task-status').value=t.status||'todo';
+  row.querySelector('.sheet-task-delete').onclick=()=>row.remove();
+  list.appendChild(row);
+  if(!t.text)setTimeout(()=>row.querySelector('.sheet-task-text')?.focus(),0);
 }
