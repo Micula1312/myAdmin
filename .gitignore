@@ -1,0 +1,7 @@
+# Ricevute e documenti personali: solo locali
+ricevute/**/*.pdf
+ricevute/**/*.PDF
+
+# File temporanei / sistema
+.DS_Store
+Thumbs.db
