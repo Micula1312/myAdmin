@@ -13,23 +13,33 @@
       <button id="resetYear" class="ghost">Ripristina dati 2026</button>
     </header>
 
-    <section class="status-card">
-      <div><small>Lordo accumulato</small><strong id="statusCumulato">€ 3.515,00</strong></div>
-      <div><small>Prima della soglia INPS</small><strong id="statusResiduo">€ 1.485,00</strong></div>
-      <div><small>Stato</small><strong id="statusLabel" class="ok">Sotto soglia</strong></div>
+    <section class="status-card four">
+      <div><small>Incassato</small><strong id="statusPaid">€ 4.340,00</strong></div>
+      <div><small>Da incassare</small><strong id="statusPending">€ 1.460,00</strong></div>
+      <div><small>Previsto</small><strong id="statusProjected">€ 5.800,00</strong></div>
+      <div><small>Franchigia residua</small><strong id="statusResiduo">€ 660,00</strong></div>
       <div class="progress"><i id="progressBar"></i></div>
+    </section>
+
+    <section class="panel pending-panel">
+      <div class="historyHead">
+        <div><p class="eyebrow">IN SOSPESO</p><h2>Ordine delle prossime ricevute</h2></div>
+        <span class="drag-help">↕ trascina per cambiare ordine e numerazione</span>
+      </div>
+      <p class="archive-note">La numerazione parte dall’ultima ricevuta confermata. Cambiando l’ordine, myAdmin ricalcola numero, cumulato precedente e quota eventualmente soggetta a INPS.</p>
+      <div id="pendingList" class="pending-list"></div>
     </section>
 
     <div class="layout">
       <section class="panel">
-        <h2>Nuova ricevuta</h2>
+        <h2>Compila una ricevuta</h2>
         <div class="grid two">
-          <label>Numero ricevuta<input id="numero" type="number" min="1" value="9"></label>
+          <label>Numero ricevuta<input id="numero" type="number" min="1" value="9" readonly></label>
           <label>Data<input id="data" type="date"></label>
         </div>
-        <label>Descrizione prestazione<textarea id="descrizione" rows="2" placeholder="Docenza / progettazione / sviluppo web / ..."></textarea></label>
+        <label>Descrizione prestazione<textarea id="descrizione" rows="4" placeholder="Docenza / progettazione / sviluppo web / ..."></textarea></label>
         <div class="grid two">
-          <label>Lordo cumulato precedente (€)<input id="cumulato" inputmode="decimal" value="3515"></label>
+          <label>Lordo cumulato precedente (€)<input id="cumulato" inputmode="decimal" value="4340" readonly></label>
           <label>Compenso lordo nuova ricevuta (€)<input id="lordo" inputmode="decimal" placeholder="0,00"></label>
         </div>
 
@@ -71,15 +81,15 @@
         <div class="result"><span>Ritenuta d'acconto</span><b id="rRitenuta">€ 0,00</b></div>
         <div class="result total"><span>NETTO DA PAGARE</span><b id="rNetto">€ 0,00</b></div>
         <div id="warning" class="warning"></div>
-        <button id="previewBtn" class="primary">Genera ricevuta</button>
-        <button id="saveBtn" class="secondary">Salva nel registro</button>
+        <button id="previewBtn" class="primary">Genera / stampa ricevuta</button>
+        <button id="savePendingBtn" class="secondary">Aggiungi in sospeso</button>
       </aside>
     </div>
 
     <section class="panel history">
-      <div class="historyHead"><div><p class="eyebrow">ARCHIVIO</p><h2>Registro 2026</h2></div><strong id="totaleRegistro">Totale: € 3.515,00</strong></div>
-      <p class="archive-note">I PDF fisici stanno in <code>ricevute/2026/</code>. Le righe senza importo restano in archivio ma non entrano nel cumulato.</p>
-      <table id="historyTable"><thead><tr><th>N.</th><th>Committente</th><th>Lordo</th><th>Netto</th><th>PDF</th><th></th></tr></thead><tbody id="historyBody"></tbody></table>
+      <div class="historyHead"><div><p class="eyebrow">INCASSATE</p><h2>Registro 2026</h2></div><strong id="totaleRegistro">Totale incassato: € 4.340,00</strong></div>
+      <p class="archive-note">I PDF già disponibili stanno in <code>ricevute/2026/</code>. I rimborsi spese sono archiviati ma esclusi dalla soglia contributiva.</p>
+      <table id="historyTable"><thead><tr><th>N.</th><th>Committente</th><th>Tipo</th><th>Lordo</th><th>Netto</th><th>PDF</th></tr></thead><tbody id="historyBody"></tbody></table>
     </section>
   </main>
 
