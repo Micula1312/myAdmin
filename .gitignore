@@ -2,6 +2,13 @@
 ricevute/**/*.pdf
 ricevute/**/*.PDF
 
+# Database/registro personale generato da server.py
+data/*.xlsx
+data/*.json
+data/*.tmp
+
 # File temporanei / sistema
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
