@@ -4,6 +4,7 @@
     ['index.html','HOME'],
     ['business.html','BUSINESS'],
     ['projects.html','PLANNING'],
+    ['calls.html','CALLS'],
     ['calendar.html','CALENDAR']
   ];
   const nav=document.createElement('header');
