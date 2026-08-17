@@ -2,7 +2,7 @@ const $=id=>document.getElementById(id);
 const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n)||0);
 const num=v=>{let s=String(v??'').trim().replace(/\s/g,'');if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(',','.');return Number(s)||0};
 const uid=p=>`${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const CATEGORY_LABELS={commercial:'Commercial Works',community:'Community',personal:'Personal'},STATUS_LABELS={active:'Attivo',intermittent:'Intermittente',paused:'In pausa',idea:'Da attivare',done:'Chiuso'},SUB_STATUS_LABELS={active:'Attivo',paused:'In pausa',done:'Chiuso'},TASK_LABELS={todo:'Da fare',doing:'In corso',blocked:'Bloccato',done:'Fatto'},PROJECT_TINTS=['#f4eee8','#edf2ea','#eaf0f4','#f2ecef','#eef0e7','#f3f0e8','#e9eff0','#f0ece7'];
 let state=null,editingId=null,activeCategory='all',selectedProject='all';
