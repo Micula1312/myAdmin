@@ -16,10 +16,13 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 RECEIPTS_DIR = ROOT / "ricevute" / "2026"
 STATE_FILE = DATA_DIR / "registro-2026.json"
+WORKSPACE_FILE = DATA_DIR / "workspace.json"
 XLSX_FILE = DATA_DIR / "registro-2026.xlsx"
 BRAIN_FILE = DATA_DIR / "auto-micol-thoughts.json"
 HOST = "127.0.0.1"
 PORT = 5050
+
+WORKSPACE_KEYS = {"projects", "todos", "todosMergedIntoTasksV2"}
 
 DEFAULT_STATE = {
     "lastConfirmed": 8,
@@ -97,26 +100,60 @@ def append_thought(payload: dict) -> dict:
     return item
 
 
+def _read_json_file(path: Path, fallback: dict) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else json.loads(json.dumps(fallback, ensure_ascii=False))
+    except Exception:
+        return json.loads(json.dumps(fallback, ensure_ascii=False))
+
+
+def _atomic_json_write(path: Path, data: dict) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def load_workspace() -> dict:
+    ensure_dirs()
+    if WORKSPACE_FILE.exists():
+        return _read_json_file(WORKSPACE_FILE, {})
+    if STATE_FILE.exists():
+        legacy = _read_json_file(STATE_FILE, {})
+        migrated = {key: legacy[key] for key in WORKSPACE_KEYS if key in legacy}
+        if migrated:
+            _atomic_json_write(WORKSPACE_FILE, migrated)
+            return migrated
+    return {}
+
+
+def save_workspace(workspace: dict) -> None:
+    ensure_dirs()
+    clean = {key: workspace[key] for key in WORKSPACE_KEYS if key in workspace}
+    _atomic_json_write(WORKSPACE_FILE, clean)
+
+
 def load_state() -> dict:
     ensure_dirs()
     if STATE_FILE.exists():
-        try:
-            data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
-            if isinstance(data, dict) and isinstance(data.get("paid"), list) and isinstance(data.get("pending"), list):
-                return data
-        except Exception:
-            pass
-    state = json.loads(json.dumps(DEFAULT_STATE, ensure_ascii=False))
-    save_state(state)
-    return state
+        fiscal = _read_json_file(STATE_FILE, {})
+        if not isinstance(fiscal.get("paid"), list) or not isinstance(fiscal.get("pending"), list):
+            fiscal = json.loads(json.dumps(DEFAULT_STATE, ensure_ascii=False))
+    else:
+        fiscal = json.loads(json.dumps(DEFAULT_STATE, ensure_ascii=False))
+        save_state(fiscal)
+    fiscal.update(load_workspace())
+    return fiscal
 
 
 def save_state(state: dict) -> None:
     ensure_dirs()
-    tmp = STATE_FILE.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
-    tmp.replace(STATE_FILE)
-    write_xlsx(state)
+    workspace = {key: state[key] for key in WORKSPACE_KEYS if key in state}
+    if workspace:
+        save_workspace(workspace)
+    fiscal = {key: value for key, value in state.items() if key not in WORKSPACE_KEYS}
+    _atomic_json_write(STATE_FILE, fiscal)
+    write_xlsx(fiscal)
 
 
 def col_name(n: int) -> str:
@@ -225,9 +262,10 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/api/state": return self.send_json(load_state())
+        if path == "/api/workspace": return self.send_json(load_workspace())
         if path == "/api/pdfs": return self.send_json({"files": pdf_index()})
         if path == "/api/brain/thoughts": return self.send_json(load_brain())
-        if path == "/api/status": return self.send_json({"ok": True, "xlsx": "data/registro-2026.xlsx", "json": "data/registro-2026.json", "brain": "data/auto-micol-thoughts.json"})
+        if path == "/api/status": return self.send_json({"ok": True, "xlsx": "data/registro-2026.xlsx", "json": "data/registro-2026.json", "workspace": "data/workspace.json", "brain": "data/auto-micol-thoughts.json"})
         if path == "/data/registro-2026.xlsx": write_xlsx(load_state())
         return super().do_GET()
 
@@ -238,10 +276,14 @@ class Handler(SimpleHTTPRequestHandler):
             if path == "/api/brain/thoughts":
                 if not isinstance(payload, dict): raise ValueError("struttura frase non valida")
                 return self.send_json({"ok": True, "thought": append_thought(payload)}, 201)
+            if path == "/api/workspace":
+                if not isinstance(payload, dict): raise ValueError("struttura workspace non valida")
+                save_workspace(payload)
+                return self.send_json({"ok": True, "workspace": "data/workspace.json"})
             if path == "/api/state":
                 if not isinstance(payload, dict) or not isinstance(payload.get("paid"), list) or not isinstance(payload.get("pending"), list): raise ValueError("struttura stato non valida")
                 save_state(payload)
-                return self.send_json({"ok": True, "xlsx": "data/registro-2026.xlsx"})
+                return self.send_json({"ok": True, "xlsx": "data/registro-2026.xlsx", "workspace": "data/workspace.json"})
             return self.send_json({"ok": False, "error": "not found"}, 404)
         except Exception as exc:
             return self.send_json({"ok": False, "error": str(exc)}, 400)
@@ -252,7 +294,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 def main():
     ensure_dirs(); state = load_state(); write_xlsx(state); url = f"http://{HOST}:{PORT}"
-    print("\nmyAdmin avviato"); print(f"  App:   {url}"); print(f"  Excel: {XLSX_FILE}"); print(f"  PDF:   {RECEIPTS_DIR}"); print(f"  Brain: {BRAIN_FILE}"); print("\nCTRL+C per chiudere.\n")
+    print("\nmyAdmin avviato"); print(f"  App:       {url}"); print(f"  Excel:     {XLSX_FILE}"); print(f"  Workspace: {WORKSPACE_FILE}"); print(f"  PDF:       {RECEIPTS_DIR}"); print(f"  Brain:     {BRAIN_FILE}"); print("\nCTRL+C per chiudere.\n")
     threading.Timer(0.7, lambda: webbrowser.open(url)).start(); ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
 
 
