@@ -128,6 +128,17 @@
       el.addEventListener(evt, renderEmployerCost);
       el.dataset.employerCostBound = '1';
     });
+
+    // app.js aggiorna la preview anche impostando i campi via JS (es. MODIFICA/STAMPA
+    // di una ricevuta sospesa). In quel caso non parte un evento input/change.
+    // Osserviamo quindi il riepilogo live: ogni renderPreview() cambia questi testi.
+    const liveStrip = document.querySelector('.calc-strip');
+    if (liveStrip && !liveStrip.dataset.employerCostObserved) {
+      const observer = new MutationObserver(() => renderEmployerCost());
+      observer.observe(liveStrip, {subtree:true, childList:true, characterData:true});
+      liveStrip.dataset.employerCostObserved = '1';
+    }
+
     renderEmployerCost();
   }
 
