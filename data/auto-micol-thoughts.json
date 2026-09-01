@@ -342,6 +342,24 @@
       "context": "homepage",
       "createdAt": "2026-09-01T12:45:09+02:00",
       "verdict": null
+    },
+    {
+      "id": "thought-20260901125652181463",
+      "text": "Forse devo smettere di chiamarlo sito e iniziare a chiamarlo dispositivo. Lo mettiamo nel repo e poi vediamo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-09-01T12:56:52+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260901130243229449",
+      "text": "Prima lo faccio funzionare, poi capiamo che cosa abbiamo costruito. Potrei farlo più semplice, ma così mi annoio.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-09-01T13:02:43+02:00",
+      "verdict": null
     }
   ]
 }
