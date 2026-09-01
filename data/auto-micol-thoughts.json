@@ -126,6 +126,222 @@
       "context": "homepage",
       "createdAt": "2026-08-16T19:28:14+02:00",
       "verdict": null
+    },
+    {
+      "id": "thought-20260816203153808848",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. La grafica viene dopo: prima devo capire la logica.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T20:31:53+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260816203200904242",
+      "text": "Oggi faccio solo le cose che hanno davvero bisogno di esistere. Sì, ma deve rimanere vivo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-16T20:32:00+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817124044821125",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. Comunque questa cosa potrebbe diventare un software.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T12:40:44+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817124112766928",
+      "text": "Oggi faccio solo le cose che hanno davvero bisogno di esistere. Lo mettiamo nel repo e poi vediamo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T12:41:12+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817124116803761",
+      "text": "Prima lo faccio funzionare, poi capiamo che cosa abbiamo costruito. La grafica viene dopo: prima devo capire la logica.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T12:41:16+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817132752567610",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. La grafica viene dopo: prima devo capire la logica.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T13:27:52+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817135353359033",
+      "text": "Oggi faccio solo le cose che hanno davvero bisogno di esistere. La grafica viene dopo: prima devo capire la logica.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T13:53:53+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817135437660821",
+      "text": "Se una cosa può stare in tre cartelle contemporaneamente probabilmente è organizzata bene. Sì, ma deve rimanere vivo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T13:54:37+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817135500373734",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. Sì, ma deve rimanere vivo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T13:55:00+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817185255350288",
+      "text": "Se una cosa può stare in tre cartelle contemporaneamente probabilmente è organizzata bene. Forse ci serve una regia, non un altro menu.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T18:52:55+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817185319179769",
+      "text": "Prima lo faccio funzionare, poi capiamo che cosa abbiamo costruito. Comunque questa cosa potrebbe diventare un software.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T18:53:19+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817185954997634",
+      "text": "Oggi faccio solo le cose che hanno davvero bisogno di esistere. Sì, ma deve rimanere vivo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T18:59:54+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260817201954024413",
+      "text": "Il problema non è il caos, è che non ha ancora una buona interfaccia. Comunque questa cosa potrebbe diventare un software.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-17T20:19:54+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260818192157307518",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. Comunque questa cosa potrebbe diventare un software.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-18T19:21:57+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260818194809536447",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. Sì, ma deve rimanere vivo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-18T19:48:09+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260818200504174002",
+      "text": "Se una cosa può stare in tre cartelle contemporaneamente probabilmente è organizzata bene. Lo mettiamo nel repo e poi vediamo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-18T20:05:04+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260818224848697893",
+      "text": "Forse devo smettere di chiamarlo sito e iniziare a chiamarlo dispositivo. Comunque questa cosa potrebbe diventare un software.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-18T22:48:48+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260818233128857077",
+      "text": "Oggi faccio solo le cose che hanno davvero bisogno di esistere. Lo mettiamo nel repo e poi vediamo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-18T23:31:28+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260819014214318190",
+      "text": "Forse devo smettere di chiamarlo sito e iniziare a chiamarlo dispositivo. Forse ci serve una regia, non un altro menu.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-19T01:42:14+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260819144103831358",
+      "text": "Prima lo faccio funzionare, poi capiamo che cosa abbiamo costruito. Sì, ma deve rimanere vivo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-19T14:41:03+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260819160855554257",
+      "text": "Prima lo faccio funzionare, poi capiamo che cosa abbiamo costruito. Potrei farlo più semplice, ma così mi annoio.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-19T16:08:55+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260819160913716298",
+      "text": "Oggi faccio solo le cose che hanno davvero bisogno di esistere. Comunque questa cosa potrebbe diventare un software.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-19T16:09:13+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260821165743573721",
+      "text": "Un archivio non è mai finito, al massimo cambia stato. Potrei farlo più semplice, ma così mi annoio.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-08-21T16:57:43+02:00",
+      "verdict": null
+    },
+    {
+      "id": "thought-20260901124509828948",
+      "text": "Forse devo smettere di chiamarlo sito e iniziare a chiamarlo dispositivo. Lo mettiamo nel repo e poi vediamo.",
+      "source": "auto-micol-local-v0",
+      "model": "fragment-combinator-v0",
+      "context": "homepage",
+      "createdAt": "2026-09-01T12:45:09+02:00",
+      "verdict": null
     }
   ]
 }
