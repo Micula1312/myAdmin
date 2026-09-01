@@ -5,7 +5,13 @@
   const FRANCHIGIA_OCCASIONALE = 5000;
 
   const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n)||0);
-  const num = v => Number(v)||0;
+  const num = v => {
+    if (typeof v === 'number') return v;
+    let s = String(v ?? '').trim().replace(/\s/g,'');
+    if (s.includes(',') && s.includes('.')) s = s.replace(/\./g,'').replace(',','.');
+    else s = s.replace(',','.');
+    return Math.max(0, Number(s) || 0);
+  };
 
   async function loadPaid(){
     try {
@@ -53,9 +59,8 @@
   }
 
   function ensureEmployerCostBox(){
-    const preview = document.querySelector('.preview-panel');
     const warning = document.getElementById('warning');
-    if (!preview || !warning) return null;
+    if (!warning) return null;
 
     let box = document.getElementById('employerCostBox');
     if (!box) {
@@ -72,43 +77,66 @@
     return box;
   }
 
+  function readEmployerCostFromForm(){
+    const lordo = num(document.getElementById('lordo')?.value);
+    const cumulato = num(document.getElementById('cumulato')?.value);
+    const franchigia = num(document.getElementById('franchigia')?.value) || FRANCHIGIA_OCCASIONALE;
+    const altraCopertura = !!document.getElementById('altraCopertura')?.checked;
+    const aliquota = altraCopertura ? 24 : (num(document.getElementById('aliquota')?.value) || ALIQUOTA_OCCASIONALE_2026);
+    const quotaLavoratore = num(document.getElementById('quotaLavoratore')?.value) || (1/3);
+    const sostituto = !!document.getElementById('sostituto')?.checked;
+    const ritenutaPerc = num(document.getElementById('ritenutaPerc')?.value) || 20;
+
+    const quotaInFranchigia = Math.min(lordo, Math.max(0, franchigia - cumulato));
+    const imponibile = Math.max(0, lordo - quotaInFranchigia);
+    const inpsTot = imponibile * aliquota / 100;
+    const inpsMe = inpsTot * quotaLavoratore;
+    const inpsCliente = inpsTot - inpsMe;
+    const ritenuta = sostituto ? lordo * ritenutaPerc / 100 : 0;
+    const netto = lordo - ritenuta - inpsMe;
+    const costoTotale = lordo + inpsCliente;
+
+    return {lordo, imponibile, inpsTot, inpsMe, inpsCliente, ritenuta, netto, costoTotale};
+  }
+
   function renderEmployerCost(){
     const box = ensureEmployerCostBox();
-    if (!box || typeof formSnapshot !== 'function') return;
+    if (!box) return;
 
-    const s = formSnapshot();
-    const quotaCliente = Number(s.inpsCliente) || 0;
-    const costoTotale = (Number(s.lordo) || 0) + quotaCliente;
-    const hasInps = (Number(s.imponibile) || 0) > 0;
+    const s = readEmployerCostFromForm();
+    const hasInps = s.imponibile > 0;
 
     box.innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:10px">
         <div><p class="eyebrow" style="margin:0 0 3px">COSTO COMMITTENTE</p><b style="font-size:1.05rem">Quanto costa davvero questa prestazione</b></div>
-        <strong style="font-size:1.2rem;white-space:nowrap">${euro(costoTotale)}</strong>
+        <strong style="font-size:1.2rem;white-space:nowrap">${euro(s.costoTotale)}</strong>
       </div>
       <div style="display:grid;grid-template-columns:1fr auto;gap:5px 16px;font-size:.92rem">
         <span>Compenso lordo</span><b>${euro(s.lordo)}</b>
-        <span>Quota INPS committente (2/3)</span><b>${euro(quotaCliente)}</b>
+        <span>Quota INPS committente (2/3)</span><b>${euro(s.inpsCliente)}</b>
         <span>Ritenuta d'acconto</span><b>${euro(s.ritenuta)}</b>
+        <span>Netto a te</span><b>${euro(s.netto)}</b>
       </div>
       <p class="archive-note" style="margin:10px 0 0">${hasInps ? `L'INPS è calcolata solo su <b>${euro(s.imponibile)}</b>, cioè sulla parte eccedente la franchigia. ` : ''}La ritenuta d'acconto è trattenuta dal tuo lordo e <b>non aumenta</b> il costo del committente.</p>`;
   }
 
-  // Aggancia il riquadro al normale aggiornamento live della ricevuta.
-  if (typeof renderPreview === 'function') {
-    const baseRenderPreview = renderPreview;
-    renderPreview = function(){
-      baseRenderPreview();
-      renderEmployerCost();
-    };
+  function bindEmployerCost(){
+    ['cumulato','lordo','sostituto','altraCopertura','franchigia','aliquota','quotaLavoratore','ritenutaPerc'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el || el.dataset.employerCostBound) return;
+      const evt = (el.type === 'checkbox' || el.tagName === 'SELECT') ? 'change' : 'input';
+      el.addEventListener(evt, renderEmployerCost);
+      el.dataset.employerCostBound = '1';
+    });
+    renderEmployerCost();
   }
 
   window.renderPrevidenza2026 = renderPrevidenza;
   window.renderEmployerCost = renderEmployerCost;
-  window.addEventListener('DOMContentLoaded', () => { renderPrevidenza(); renderEmployerCost(); });
-  window.addEventListener('focus', renderPrevidenza);
-  document.addEventListener('myadmin:paid-rendered', () => setTimeout(renderPrevidenza, 50));
+  window.addEventListener('DOMContentLoaded', () => { renderPrevidenza(); bindEmployerCost(); });
+  window.addEventListener('focus', () => { renderPrevidenza(); renderEmployerCost(); });
+  document.addEventListener('myadmin:paid-rendered', () => setTimeout(() => { renderPrevidenza(); renderEmployerCost(); }, 50));
 
-  // Gli script sono caricati a fondo pagina: aggiorna subito anche senza attendere DOMContentLoaded.
-  renderEmployerCost();
+  // Gli script sono caricati in fondo alla pagina, quindi possiamo agganciare subito il preview.
+  bindEmployerCost();
 })();
