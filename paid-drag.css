@@ -1,0 +1,1 @@
+.paid-card{grid-template-columns:22px 36px minmax(0,1fr) auto}.paid-card .flow-actions{grid-column:3/-1}.paid-card .drag-handle{display:block}.paid-card[draggable="true"]{cursor:default}.paid-card.dragging{opacity:.4}@media(max-width:650px){.paid-card{grid-template-columns:26px 1fr auto}.paid-card .drag-handle{display:none}.paid-card .flow-actions{grid-column:1/-1}}
